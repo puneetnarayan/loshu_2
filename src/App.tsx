@@ -10,6 +10,15 @@ import { buildReport, parseDob } from './loshu';
 import type { Digit, OverlayModeId, ParsedDob } from './loshu';
 
 type Tab = 'basic' | 'advanced';
+
+// Starting values requested by the owner. The name is only a display label: it is not used in any calculation.
+const DEFAULT_NAME = 'Puneet Narayan';
+const DEFAULT_DOB_TEXT = '02-06-1970';
+
+function initialDob(): ParsedDob | null {
+  const r = parseDob(DEFAULT_DOB_TEXT);
+  return r.ok ? r.dob : null;
+}
 const TABS: Array<{ id: Tab; label: string; blurb: string }> = [
   { id: 'basic', label: 'Basic', blurb: 'Plain-language reading' },
   { id: 'advanced', label: 'Advanced', blurb: 'Full calculation and sources' },
@@ -17,8 +26,9 @@ const TABS: Array<{ id: Tab; label: string; blurb: string }> = [
 
 export function App() {
   const [tab, setTab] = useState<Tab>('advanced'); // Advanced is the default
-  const [text, setText] = useState('');
-  const [dob, setDob] = useState<ParsedDob | null>(null);
+  const [text, setText] = useState(DEFAULT_DOB_TEXT);
+  const [name, setName] = useState(DEFAULT_NAME);
+  const [dob, setDob] = useState<ParsedDob | null>(initialDob);
   const [error, setError] = useState<string | null>(null);
   const [mode, setMode] = useState<OverlayModeId>('dob-only');
   const [layer, setLayer] = useState<GridLayer>('raw');
@@ -43,6 +53,7 @@ export function App() {
   };
   const reset = () => {
     setText('');
+    setName('');
     setDob(null);
     setError(null);
     setMode('dob-only');
@@ -80,7 +91,13 @@ export function App() {
         <HelpPanel open={helpOpen} onToggle={() => setHelpOpen((o) => !o)} />
       </header>
 
-      <DateForm value={text} error={error} onChange={setText} onSubmit={submit} onReset={reset} />
+      <DateForm value={text} name={name} error={error} onChange={setText} onNameChange={setName} onSubmit={submit} onReset={reset} />
+
+      {dob && (
+        <p className="prepared">
+          Reading for {name.trim() ? <strong>{name.trim()}</strong> : 'the date'} · born <strong>{dob.normalised}</strong>
+        </p>
+      )}
 
       <div className="tabs" role="tablist" aria-label="Lo Shu view">
         {TABS.map((t) => (

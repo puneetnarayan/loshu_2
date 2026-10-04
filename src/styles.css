@@ -46,6 +46,7 @@ code { background: var(--tint); padding: 1px 4px; border-radius: 3px; font-size:
 .btn-primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
 .btn-primary:hover { background: #243b82; }
 .privacy { background: var(--tint-green); border: 1px solid var(--soft-border); padding: 8px 10px; border-radius: 6px; font-size: 0.9rem; margin-bottom: 0; }
+.prepared { margin: 12px 0 0; padding: 8px 12px; border: 1.5px solid var(--border); border-radius: 6px; background: var(--tint); }
 .tabs { display: flex; gap: 6px; margin-top: 16px; }
 .tab { flex: 1; display: grid; text-align: left; padding: 10px 14px; font: inherit; background: var(--tint); border: 1.5px solid var(--border); border-bottom: none; border-radius: 8px 8px 0 0; cursor: pointer; color: var(--ink); }
 .tab-active { background: var(--surface); box-shadow: inset 0 4px 0 var(--accent); }

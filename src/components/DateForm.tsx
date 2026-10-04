@@ -4,13 +4,15 @@ import { isoToDdMmYyyy } from '../loshu';
 
 interface Props {
   value: string;
+  name: string;
   error: string | null;
   onChange: (v: string) => void;
+  onNameChange: (v: string) => void;
   onSubmit: () => void;
   onReset: () => void;
 }
 
-export function DateForm({ value, error, onChange, onSubmit, onReset }: Props) {
+export function DateForm({ value, name, error, onChange, onNameChange, onSubmit, onReset }: Props) {
   const id = useId();
   const errId = `${id}-err`;
   const hintId = `${id}-hint`;
@@ -22,6 +24,19 @@ export function DateForm({ value, error, onChange, onSubmit, onReset }: Props) {
     <form className="panel date-form" onSubmit={submit} noValidate aria-label="Date of birth">
       <div className="field">
         <div className="field-row">
+          <div>
+            <label htmlFor={`${id}-name`}>Name (optional)</label>
+            <input
+              id={`${id}-name`}
+              type="text"
+              autoComplete="off"
+              maxLength={60}
+              placeholder="Your name"
+              value={name}
+              onChange={(e) => onNameChange(e.target.value)}
+              aria-describedby={`${hintId}-name`}
+            />
+          </div>
           <div>
             <label htmlFor={`${id}-dob`}>Date of birth (DD-MM-YYYY)</label>
             <input
@@ -50,6 +65,9 @@ export function DateForm({ value, error, onChange, onSubmit, onReset }: Props) {
             />
           </div>
         </div>
+        <p id={`${hintId}-name`} className="muted small">
+          The name is only shown as a label on this page. It is not used in any calculation.
+        </p>
         <p id={hintId} className="muted small">
           Day first, then month, then four-digit year. Gregorian calendar, from 15-10-1582. No name, birth time or place is needed.
         </p>
@@ -68,7 +86,7 @@ export function DateForm({ value, error, onChange, onSubmit, onReset }: Props) {
         </button>
       </div>
       <p className="privacy">
-        <strong>Privacy:</strong> everything is calculated in your browser. Your date of birth is not sent anywhere, not saved in browser storage and not used in any link or file name. It disappears when you reset or close the page.
+        <strong>Privacy:</strong> everything is calculated in your browser. Your name and date of birth are not sent anywhere, not saved in browser storage and not used in any link or file name. It disappears when you reset or close the page.
       </p>
     </form>
   );

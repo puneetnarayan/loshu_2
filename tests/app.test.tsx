@@ -41,9 +41,54 @@ describe('tabs', () => {
   });
 });
 
-describe('input and validation', () => {
-  it('shows the fixed grid and an empty state before calculating', () => {
+describe('defaults', () => {
+  // 02-06-1970 by hand: digits 0,2,0,6,1,9,7,0 -> non-zero 2,6,1,9,7 once each; Driver 2; Destiny 25 -> 7.
+  // Lines: 2-7-6 complete (all present); 4-3-8 entirely empty; the other six are partial.
+  it('opens with 02-06-1970 and Puneet Narayan and shows the interpretation immediately', () => {
     render(<App />);
+    expect(screen.getByLabelText(/Name \(optional\)/)).toHaveValue('Puneet Narayan');
+    expect(screen.getByLabelText(/Date of birth \(DD-MM-YYYY\)/)).toHaveValue('02-06-1970');
+    expect(screen.getByText(/Reading for/)).toHaveTextContent('Reading for Puneet Narayan · born 02-06-1970');
+    expect(screen.getByRole('status')).toHaveTextContent(/Calculation verified/);
+    for (const n of [1, 2, 6, 7, 9]) expect(screen.getByRole('button', { name: cellLabel(n) })).toHaveAccessibleName(/Appears 1 time\. present/);
+    for (const n of [3, 4, 5, 8]) expect(screen.getByRole('button', { name: cellLabel(n) })).toHaveAccessibleName(/Appears 0 times\. missing/);
+    expect(screen.getByRole('heading', { level: 3, name: 'Interpretation (rule-based)' })).toBeInTheDocument();
+    expect(screen.getAllByText(/2–7–6 is complete — Action plane/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/4–3–8 is entirely empty/).length).toBeGreaterThan(0);
+  });
+  it('the interpretation comes before the audit in Advanced', () => {
+    render(<App />);
+    const titles = screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent);
+    expect(titles.indexOf('Interpretation (rule-based)')).toBeGreaterThan(titles.indexOf('Advanced grid'));
+    expect(titles.indexOf('Interpretation (rule-based)')).toBeLessThan(titles.indexOf('Calculation audit'));
+  });
+  it('the name is only a label: changing it does not change any count, and it is not stored', async () => {
+    const user = userEvent.setup();
+    const setItem = vi.spyOn(Storage.prototype, 'setItem');
+    render(<App />);
+    const before = [1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => screen.getByRole('button', { name: cellLabel(n) }).getAttribute('aria-label'));
+    await user.clear(screen.getByLabelText(/Name \(optional\)/));
+    await user.type(screen.getByLabelText(/Name \(optional\)/), 'Someone Else');
+    await user.click(screen.getByRole('button', { name: 'Calculate' }));
+    expect(screen.getByText(/Reading for/)).toHaveTextContent('Reading for Someone Else · born 02-06-1970');
+    expect([1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => screen.getByRole('button', { name: cellLabel(n) }).getAttribute('aria-label'))).toEqual(before);
+    expect(setItem).not.toHaveBeenCalled();
+  });
+  it('renders a name containing markup as plain text', async () => {
+    const user = userEvent.setup();
+    const { container } = render(<App />);
+    await user.clear(screen.getByLabelText(/Name \(optional\)/));
+    await user.type(screen.getByLabelText(/Name \(optional\)/), '<b>x</b>');
+    expect(screen.getByText(/Reading for/)).toHaveTextContent('Reading for <b>x</b>');
+    expect(container.querySelector('.prepared b')).toBeNull();
+  });
+});
+
+describe('input and validation', () => {
+  it('shows the fixed grid and an empty state after Reset', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByRole('button', { name: 'Reset' }));
     expect(screen.getByText(/Enter a date of birth above/)).toBeInTheDocument();
     for (const n of [4, 9, 2, 3, 5, 7, 8, 1, 6]) expect(screen.getByRole('button', { name: new RegExp(`^Number ${n}\\.`) })).toBeInTheDocument();
   });
