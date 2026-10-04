@@ -85,6 +85,32 @@ export function Advanced(p: Props) {
         <CellDetail digit={p.selected} analysis={a} triggered={triggered} variant="advanced" />
       </Section>
 
+      <Section title="Interpretation (rule-based)">
+        {synthesis.summary.map((s) => <p key={s}>{s}</p>)}
+        <h4>Primary patterns</h4>
+        <TriggeredList items={synthesis.primary} />
+        <h4>Secondary patterns</h4>
+        <TriggeredList items={synthesis.secondary} />
+        <h4>Reinforcing themes</h4>
+        {synthesis.reinforcing.length ? <ul>{synthesis.reinforcing.map((g) => <li key={g.theme}><strong>{g.theme}</strong>: {g.explanation}</li>)}</ul> : <p>None.</p>}
+        <h4>Themes on both sides</h4>
+        {synthesis.conflicts.length ? <ul>{synthesis.conflicts.map((g) => <li key={g.theme}><strong>{g.theme}</strong>: {g.explanation}</li>)}</ul> : <p>None.</p>}
+        <p className="muted small">Theme tags are project-assigned grouping labels for this synthesis step, not claims made by any source.</p>
+        <h4>Unsupported or unavailable interpretations</h4>
+        <ul>{synthesis.unsupported.map((u) => <li key={u.subject}><strong>{u.subject}</strong>: {u.reason}</li>)}</ul>
+        {synthesis.duplicatesRemoved.length > 0 && <p>Duplicates merged: {synthesis.duplicatesRemoved.map((d) => `${d.removed} → ${d.keptAs}`).join(', ')}.</p>}
+        <Derivation title="Audit record">
+          <TableWrap><table className="table">
+            <thead><tr><th scope="col">Rule</th><th scope="col">Tier</th><th scope="col">Included</th><th scope="col">Why</th></tr></thead>
+            <tbody>
+              {synthesis.audit.map((e) => (
+                <tr key={e.ruleId}><th scope="row">{e.ruleId}</th><td>{e.tier}</td><td>{e.included ? 'yes' : 'no'}</td><td>{e.why.join(' ') || e.note}</td></tr>
+              ))}
+            </tbody>
+          </table></TableWrap>
+        </Derivation>
+      </Section>
+
       <Section title="Calculation audit">
         <TableWrap><table className="table">
           <caption>Raw DOB layer (never changed by overlays)</caption>
@@ -151,7 +177,7 @@ export function Advanced(p: Props) {
           const present = digitRule(d, 'PRESENT');
           const applies = (k: string) => nowIds.has(`NUM-${d}-${k}`);
           return (
-            <details key={d} className="number-detail">
+            <details key={d} className="number-detail" open>
               <summary>
                 <strong>{d}</strong> · {stat.position.label} · raw {stat.rawCount}, overlay {stat.overlayCount}, total {stat.combinedCount} · <StatusTag status={stat.effectiveStatus} />
               </summary>
@@ -220,7 +246,7 @@ export function Advanced(p: Props) {
               const cr = ruleById(`LINE-${l.def.id}-COMPLETE`)!;
               const er = ruleById(`LINE-${l.def.id}-EMPTY`)!;
               return (
-                <details key={l.def.id} className="derive">
+                <details key={l.def.id} className="derive" open>
                   <summary>
                     {lineLabel(l.def)} · {LINE_NAMES[l.def.id]?.name} · {LINE_STATE_TEXT[l.state]}
                   </summary>
@@ -236,31 +262,6 @@ export function Advanced(p: Props) {
         ))}
       </Section>
 
-      <Section title="Interpretation synthesis">
-        {synthesis.summary.map((s) => <p key={s}>{s}</p>)}
-        <h4>Primary patterns</h4>
-        <TriggeredList items={synthesis.primary} />
-        <h4>Secondary patterns</h4>
-        <TriggeredList items={synthesis.secondary} />
-        <h4>Reinforcing themes</h4>
-        {synthesis.reinforcing.length ? <ul>{synthesis.reinforcing.map((g) => <li key={g.theme}><strong>{g.theme}</strong>: {g.explanation}</li>)}</ul> : <p>None.</p>}
-        <h4>Themes on both sides</h4>
-        {synthesis.conflicts.length ? <ul>{synthesis.conflicts.map((g) => <li key={g.theme}><strong>{g.theme}</strong>: {g.explanation}</li>)}</ul> : <p>None.</p>}
-        <p className="muted small">Theme tags are project-assigned grouping labels for this synthesis step, not claims made by any source.</p>
-        <h4>Unsupported or unavailable interpretations</h4>
-        <ul>{synthesis.unsupported.map((u) => <li key={u.subject}><strong>{u.subject}</strong>: {u.reason}</li>)}</ul>
-        {synthesis.duplicatesRemoved.length > 0 && <p>Duplicates merged: {synthesis.duplicatesRemoved.map((d) => `${d.removed} → ${d.keptAs}`).join(', ')}.</p>}
-        <Derivation title="Audit record">
-          <TableWrap><table className="table">
-            <thead><tr><th scope="col">Rule</th><th scope="col">Tier</th><th scope="col">Included</th><th scope="col">Why</th></tr></thead>
-            <tbody>
-              {synthesis.audit.map((e) => (
-                <tr key={e.ruleId}><th scope="row">{e.ruleId}</th><td>{e.tier}</td><td>{e.included ? 'yes' : 'no'}</td><td>{e.why.join(' ') || e.note}</td></tr>
-              ))}
-            </tbody>
-          </table></TableWrap>
-        </Derivation>
-      </Section>
 
       <Section title="Evidence and confidence">
         <p>Four separate questions are never merged into one score, and no accuracy percentage is given.</p>

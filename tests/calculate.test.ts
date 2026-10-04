@@ -162,6 +162,26 @@ describe('other fixtures', () => {
   });
 });
 
+describe('default fixture 02-06-1970', () => {
+  const d = dobOf('02-06-1970');
+  const a = analyse(d);
+  it('digits 0,2,0,6,1,9,7,0: three zeros excluded, five digits once each', () => {
+    expect(a.audit.allDigits).toEqual([0, 2, 0, 6, 1, 9, 7, 0]);
+    expect(a.audit.zerosExcluded).toBe(3);
+    expect(a.audit.rawCounts).toEqual({ 1: 1, 2: 1, 3: 0, 4: 0, 5: 0, 6: 1, 7: 1, 8: 0, 9: 1 });
+    expect(a.audit.repeatedSet).toEqual([]);
+  });
+  it('Driver 2 and Destiny 25 -> 7', () => {
+    expect(computeDriver(d)).toMatchObject({ value: 2, steps: ['0 + 2 = 2'] });
+    expect(computeDestiny(d)).toMatchObject({ value: 7, steps: ['0 + 2 + 0 + 6 + 1 + 9 + 7 + 0 = 25', '2 + 5 = 7'] });
+  });
+  it('2-7-6 is complete, 4-3-8 entirely empty, the other six partial', () => {
+    expect(a.completeLineIds).toEqual(['V-276']);
+    expect(a.emptyLineIds).toEqual(['V-438']);
+    expect(a.partialLineIds.sort()).toEqual(['D-258', 'D-456', 'H-357', 'H-492', 'H-816', 'V-951']);
+  });
+});
+
 describe('overlay modes', () => {
   it('lists five modes; Kua is unavailable and cannot be analysed', () => {
     expect(OVERLAY_MODES.map((m) => m.id)).toEqual(['dob-only', 'dob-driver', 'dob-destiny', 'dob-driver-destiny', 'dob-driver-destiny-kua']);

@@ -5,6 +5,14 @@ Everything is computed in the browser; no backend, API key or analytics.
 
 > **Status note:** the interpretation wording is based on search-result summaries from several web sources; no source page could be opened (network egress was blocked), so nothing is labelled as directly verified. See `docs/research/research-log.md` before relying on any source attribution.
 
+## Defaults
+
+The form opens with the name "Puneet Narayan" and the date 02-06-1970 (constants in `src/App.tsx`), so a reading is shown on load. The name is only a display label and is never used in a calculation. Reset clears both fields. Change or remove the constants to ship different defaults.
+
+## Live results and the PDF report
+
+There is no Calculate button: the date is parsed on every keystroke and the reading updates as soon as a complete, valid date is present (errors appear once ten characters are entered or the field is left). **Report PDF** opens the browser's print dialog with a dedicated A4 report (grid, audit, eight lines, interpretation, evidence, sources); choose "Save as PDF". Nothing is uploaded, and the page title (the default file name) never contains the name or date.
+
 ## Run
 
 ```bash

@@ -46,6 +46,7 @@ code { background: var(--tint); padding: 1px 4px; border-radius: 3px; font-size:
 .btn-primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
 .btn-primary:hover { background: #243b82; }
 .privacy { background: var(--tint-green); border: 1px solid var(--soft-border); padding: 8px 10px; border-radius: 6px; font-size: 0.9rem; margin-bottom: 0; }
+.prepared { margin: 12px 0 0; padding: 8px 12px; border: 1.5px solid var(--border); border-radius: 6px; background: var(--tint); }
 .tabs { display: flex; gap: 6px; margin-top: 16px; }
 .tab { flex: 1; display: grid; text-align: left; padding: 10px 14px; font: inherit; background: var(--tint); border: 1.5px solid var(--border); border-bottom: none; border-radius: 8px 8px 0 0; cursor: pointer; color: var(--ink); }
 .tab-active { background: var(--surface); box-shadow: inset 0 4px 0 var(--accent); }
@@ -115,3 +116,23 @@ summary { cursor: pointer; font-weight: 600; }
   .tab { padding: 8px; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+.print-only { display: none; }
+@page { margin: 14mm; }
+@media print {
+  .screen-only { display: none !important; }
+  .print-only { display: block !important; }
+  body { background: #fff; color: #000; }
+  .app { max-width: none; padding: 0; }
+  .print-report { font-size: 10.5pt; line-height: 1.35; }
+  .print-report h1 { font-size: 18pt; margin: 0 0 4pt; }
+  .print-report h2 { font-size: 13pt; margin: 14pt 0 4pt; border-bottom: 1px solid #000; break-after: avoid; }
+  .print-report h3 { font-size: 11pt; margin: 8pt 0 3pt; break-after: avoid; }
+  .print-report table { width: 100%; border-collapse: collapse; margin: 4pt 0 8pt; }
+  .print-report th, .print-report td { border: 1px solid #000; padding: 3pt 5pt; text-align: left; vertical-align: top; }
+  .print-report tr, .print-report li { break-inside: avoid; }
+  .print-report caption { text-align: left; font-weight: 700; padding-bottom: 2pt; }
+  .print-report .grid-cell { text-align: center; width: 33%; font-size: 11pt; }
+  .print-report .small { font-size: 9pt; }
+  .print-report .note { font-style: italic; }
+}
