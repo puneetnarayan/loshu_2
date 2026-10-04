@@ -1,3 +1,5 @@
+import type { ElementProfile } from './extras';
+
 export type Digit = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
 
 export type LineKind = 'horizontal' | 'vertical' | 'diagonal';
@@ -77,6 +79,16 @@ export interface LineStat {
   state: LineState;
   /** Same measures on the raw DOB layer, independent of overlays. */
   rawState: LineState;
+  /** Sum of the combined counts of the three digits (how heavily the line is populated). */
+  weight: number;
+}
+
+export interface GridFacts {
+  centreCount: number;
+  activeCells: number;
+  totalCount: number;
+  heaviestLineIds: string[];
+  lightestLineIds: string[];
 }
 
 export interface CalculationAudit {
@@ -106,6 +118,8 @@ export interface Analysis {
   completeLineIds: string[];
   emptyLineIds: string[];
   partialLineIds: string[];
+  facts: GridFacts;
+  elements: ElementProfile;
 }
 
 export interface VerificationCheck {

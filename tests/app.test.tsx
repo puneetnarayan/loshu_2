@@ -126,6 +126,85 @@ describe('live results', () => {
   });
 });
 
+describe('extra interpretations', () => {
+  const h3s = () => screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent);
+  it('Advanced shows every new section by default', () => {
+    render(<App />);
+    expect(h3s()).toEqual(
+      expect.arrayContaining([
+        'Driver and Destiny readings', 'How common is this pattern?', 'Grid facts and line weights', 'Planetary profile (optional)',
+        'Five elements (optional)', 'Reported remedies (optional)', 'Personal year cycle (optional, forecast style)',
+        'Name numbers (optional, Pythagorean)', 'Compare with another date (optional)',
+      ]),
+    );
+  });
+  it('shows visible riders: low for remedies/planets/elements, very low for cycle and name', () => {
+    const { container } = render(<App />);
+    const riders = [...container.querySelectorAll('aside.rider')];
+    const text = (re: RegExp) => riders.filter((r) => re.test(r.textContent ?? ''));
+    expect(text(/Low confidence.*Remedies were collected/s).length).toBeGreaterThan(0);
+    expect(text(/Low confidence.*digit-to-planet mapping/s).length).toBeGreaterThan(0);
+    expect(text(/Low confidence.*element of each number/s).length).toBeGreaterThan(0);
+    expect(text(/Very low confidence.*Forecast-style/s).length).toBeGreaterThan(0);
+    expect(text(/Very low confidence.*separate system/s).length).toBeGreaterThan(0);
+    // low-confidence rules also carry a chip that is text, not colour only
+    expect(container.querySelectorAll('.chip-low').length).toBeGreaterThan(0);
+    expect(container.querySelectorAll('.chip-very-low').length).toBeGreaterThan(0);
+  });
+  it('shows the hand-checked values for the defaults (name 56 -> 11 -> 2, personal year, elements)', () => {
+    render(<App />);
+    const name = screen.getByRole('heading', { level: 3, name: 'Name numbers (optional, Pythagorean)' }).closest('section')!;
+    expect(name).toHaveTextContent('56 → 11 → 2');
+    expect(name).toHaveTextContent('16 → 7');
+    expect(name).toHaveTextContent('40 → 4');
+    const cycle = screen.getByRole('heading', { level: 3, name: /Personal year cycle/ }).closest('section')!;
+    expect(cycle).toHaveTextContent(`Personal Year for ${new Date().getFullYear()}`);
+    const el = screen.getByRole('heading', { level: 3, name: 'Five elements (optional)' }).closest('section')!;
+    expect(el).toHaveTextContent('Most represented: metal');
+  });
+  it('switching an optional reading off removes its section', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByRole('checkbox', { name: /Reported remedies/ }));
+    expect(h3s()).not.toContain('Reported remedies (optional)');
+    expect(h3s()).toContain('Five elements (optional)');
+  });
+  it('compares with a second date live, using descriptive arithmetic only', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.type(screen.getByLabelText(/Second date of birth/), '23-11-1994');
+    const sec = screen.getByRole('heading', { level: 3, name: 'Compare with another date (optional)' }).closest('section')!;
+    expect(sec).toHaveTextContent('Present in both: 1, 2, 9.');
+    expect(sec).toHaveTextContent('Only in 02-06-1970: 6, 7.');
+    expect(sec).toHaveTextContent('Missing from both: 5, 8.');
+    expect(sec).toHaveTextContent(/No compatibility verdict is made/);
+  });
+  it('the historical mirror view redraws the grid without changing counts', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    const before = screen.getByRole('button', { name: cellLabel(2) }).getAttribute('aria-label')!.replace(/, [a-z ]+\./, '.');
+    await user.click(screen.getByRole('radio', { name: /Historical mirror/ }));
+    expect(screen.getByRole('group', { name: /historical mirror layout: 2 9 4/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: cellLabel(2) })).toHaveAccessibleName(/top left/);
+    expect(screen.getByRole('button', { name: cellLabel(2) }).getAttribute('aria-label')!.replace(/, [a-z ]+\./, '.')).toBe(before);
+    expect(screen.getAllByText(/Da Dai Liji/).length).toBeGreaterThan(0); // rider explains the source and its low confidence
+    const cells = [...document.querySelectorAll('.lo-grid .cell-digit')].map((c) => c.textContent);
+    expect(cells).toEqual(['2', '9', '4', '7', '5', '3', '6', '1', '8']);
+  });
+  it('Basic shows key numbers, partial-line tiers and how common the pattern is, with confidence labels', async () => {
+    const user = userEvent.setup();
+    const { container } = render(<App />);
+    await user.click(screen.getByRole('tab', { name: /Basic/ }));
+    expect(screen.getByRole('heading', { level: 4, name: 'Your two key numbers' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 4, name: 'How common is your pattern?' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 4, name: 'Partly present lines' })).toBeInTheDocument();
+    expect(screen.getByText(/Your Driver number is 2/)).toBeInTheDocument();
+    expect(screen.getByText(/Your Destiny number is 7/)).toBeInTheDocument();
+    expect(container.querySelectorAll('.chip-low').length).toBeGreaterThan(0);
+    expect(screen.queryByRole('heading', { name: /Reported remedies/ })).not.toBeInTheDocument(); // optional readings stay in Advanced
+  });
+});
+
 describe('PDF report', () => {
   it('has a Report PDF button next to Reset, enabled only for a valid date', async () => {
     const user = userEvent.setup();
@@ -155,11 +234,16 @@ describe('PDF report', () => {
     const text = report.textContent ?? '';
     expect(text).toMatch(/Prepared for Puneet Narayan/);
     expect(text).toMatch(/Date of birth 02-06-1970/);
-    for (const h of ['1. Grid', '2. Calculation audit', '3. The eight lines', '4. Interpretation (rule-based)', '5. Evidence and limitations', '6. Sources cited by the rules above']) expect(text).toContain(h);
+    for (const h of ['1. Grid', '2. Calculation audit', '3. The eight lines', '4. Interpretation (rule-based)', '5. Key numbers and how common the pattern is', '6. Optional readings', '7. Evidence and limitations', '8. Sources cited by the rules above']) expect(text).toContain(h);
     expect(text).toMatch(/2–7–6 is complete — Action plane/);
     expect(text).toMatch(/4–3–8 is entirely empty/);
     expect(text).toMatch(/Calculation verified/);
     expect(text).toMatch(/not scientifically validated/);
+    expect(text).toMatch(/Rider:/); // low-confidence riders are printed too
+    expect(text).toMatch(/Name numbers \(very low confidence\)/);
+    expect(text).toMatch(/Personal year cycle \(very low confidence\)/);
+    expect(text).toMatch(/Reported remedies \(low confidence\)/);
+    expect(text).toMatch(/Share of all 46,021 calendar dates/);
     expect(text).toMatch(/https:\/\//); // sources are listed with their URLs
     expect(text).not.toMatch(/\d+(\.\d+)?\s?%\s*(accura|confiden|match|likel)/i);
     // The default PDF file name comes from the page title; it must stay neutral and never be set from the date or name.

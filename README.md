@@ -30,7 +30,7 @@ Node 22 was used for development.
 ## Layout
 
 - `src/loshu/`: calculation engine (`calculate.ts`, `overlays.ts`, `date.ts`), rule matching (`engine.ts`), synthesis (`synthesis.ts`), single entry point `buildReport()` in `index.ts`.
-- `src/data/`: schema, source registry, interpretation catalogue, catalogue validator.
+- `src/data/`: schema, source registry, interpretation catalogue (`rules.ts`, `extraRules.ts`, merged in `catalogue.ts`), generated pattern frequencies, catalogue validator.
 - `src/components/`: Basic, Advanced, grid, form, help/glossary, shared pieces.
 - `tests/`: dates, calculations (incl. property tests), catalogue/synthesis, UI.
 - `docs/`: research log and methodology.

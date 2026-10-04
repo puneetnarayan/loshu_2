@@ -136,3 +136,12 @@ summary { cursor: pointer; font-weight: 600; }
   .print-report .small { font-size: 9pt; }
   .print-report .note { font-style: italic; }
 }
+
+.rider { margin: 8px 0; padding: 8px 12px; border: 2px solid var(--border); border-left-width: 8px; border-radius: 6px; background: var(--tint-amber); font-size: 0.9rem; }
+.rider-very-low { background: var(--tint-rose); border-style: double; border-left-width: 10px; }
+.rider-moderate { background: var(--tint); border-left-width: 4px; }
+.chip-low { background: var(--tint-amber); border-style: dashed; }
+.chip-very-low { background: var(--tint-rose); border-style: double; border-width: 3px; }
+.chip-moderate { background: var(--tint); }
+.extras-opts { display: grid; gap: 6px; margin: 8px 0; }
+.bar { display: inline-block; height: 0.7em; background: var(--accent); border: 1px solid var(--border); vertical-align: middle; min-width: 2px; }

@@ -1,12 +1,14 @@
 import { useMemo } from 'react';
 import { DIGIT_PLANETS, LINE_NAMES } from '../data/rules';
-import { EVIDENCE_LABELS, FIDELITY_LABELS } from '../data/schema';
+import { EVIDENCE_LABELS, EXTRAS, FIDELITY_LABELS } from '../data/schema';
+import type { Extra } from '../data/schema';
 import { digitRule, ruleById } from '../lookup';
 import { DIGITS, OVERLAY_MODES, buildReport, lineLabel } from '../loshu';
 import type { Digit, OverlayModeId, Report } from '../loshu';
+import { CompareSection, CycleSection, ElementSection, FactsSection, FrequencySection, KeyNumbersSection, NameSection, PlanetSection, RemedySection } from './AdvancedExtras';
 import { CellDetail, GridView } from './GridView';
-import type { GridLayer } from './GridView';
-import { Derivation, EvidenceLabel, RuleDerivation, RuleRecord, Section, StatusTag, TableWrap, VerificationBadge } from './shared';
+import type { GridLayer, Orientation } from './GridView';
+import { Derivation, EvidenceLabel, Rider, RuleDerivation, RuleRecord, Section, StatusTag, TableWrap, VerificationBadge } from './shared';
 
 interface Props {
   report: Report;
@@ -14,19 +16,33 @@ interface Props {
   onMode: (m: OverlayModeId) => void;
   layer: GridLayer;
   onLayer: (l: GridLayer) => void;
-  planetary: boolean;
-  onPlanetary: (b: boolean) => void;
+  extras: Extra[];
+  onExtras: (e: Extra[]) => void;
+  orientation: Orientation;
+  onOrientation: (o: Orientation) => void;
+  compareText: string;
+  onCompareText: (v: string) => void;
+  name: string;
+  asOf: Date;
   selected: Digit | null;
   onSelect: (d: Digit) => void;
 }
 
+const EXTRA_LABEL: Record<Extra, string> = {
+  planetary: 'Planetary associations and profile (Indian scheme)',
+  elements: 'Five elements (Feng Shui / Nine Star Ki mapping)',
+  remedies: 'Reported remedies (habits and traditional practices)',
+  cycle: 'Personal year cycle (forecast style, very low confidence)',
+  name: 'Name numbers (Pythagorean, very low confidence)',
+};
 const LINE_STATE_TEXT = { complete: '✓ Complete', partial: '◐ Partial', empty: '○ Empty' } as const;
 const KIND_TITLE = { horizontal: 'Horizontal planes (rows)', vertical: 'Vertical planes (columns)', diagonal: 'Diagonals' } as const;
 
 export function Advanced(p: Props) {
-  const { report, mode, layer, planetary } = p;
+  const { report, mode, layer, extras, orientation } = p;
+  const planetary = extras.includes('planetary');
   const { analysis: a, triggered, synthesis, checks } = report;
-  const baseline = useMemo(() => buildReport(a.dob, 'dob-only', { planetary }), [a.dob, planetary]);
+  const baseline = useMemo(() => buildReport(a.dob, 'dob-only', { extras, name: p.name, asOf: p.asOf }), [a.dob, extras, p.name, p.asOf]);
   const baseIds = new Set(baseline.triggered.map((t) => t.rule.id));
   const nowIds = new Set(triggered.map((t) => t.rule.id));
   const gained = [...nowIds].filter((i) => !baseIds.has(i));
@@ -67,9 +83,29 @@ export function Advanced(p: Props) {
             </label>
           ))}
         </fieldset>
-        <label className="check">
-          <input type="checkbox" checked={planetary} onChange={(e) => p.onPlanetary(e.target.checked)} /> Show optional planetary associations (Indian scheme; mapping not verified against a primary text)
-        </label>
+        <fieldset className="modes">
+          <legend>Optional readings (each carries its own low-confidence rider)</legend>
+          {EXTRAS.map((x) => (
+            <label key={x} className="check">
+              <input
+                type="checkbox"
+                checked={extras.includes(x)}
+                onChange={(e) => p.onExtras(e.target.checked ? [...extras, x] : extras.filter((y) => y !== x))}
+              />{' '}
+              {EXTRA_LABEL[x]}
+            </label>
+          ))}
+        </fieldset>
+        <fieldset className="modes inline">
+          <legend>Grid orientation</legend>
+          <label><input type="radio" name="orientation" value="modern" checked={orientation === 'modern'} onChange={() => p.onOrientation('modern')} /> Modern (4 9 2 / 3 5 7 / 8 1 6)</label>
+          <label><input type="radio" name="orientation" value="historical" checked={orientation === 'historical'} onChange={() => p.onOrientation('historical')} /> Historical mirror (2 9 4 / 7 5 3 / 6 1 8)</label>
+        </fieldset>
+        {orientation === 'historical' && (
+          <Rider level="low">
+            The mirrored arrangement is attributed to the Da Dai Liji (about 80 CE) by a search summary of an encyclopedia article that was not opened. Only the drawing is mirrored; no calculation changes.
+          </Rider>
+        )}
         <div className="mode-effect">
           <p><strong>Selected: {modeDef.label}.</strong> {modeDef.description}</p>
           <ul>
@@ -81,8 +117,8 @@ export function Advanced(p: Props) {
       </Section>
 
       <Section title="Advanced grid">
-        <GridView analysis={a} selected={p.selected} onSelect={p.onSelect} variant="advanced" layer={layer} triggered={triggered} />
-        <CellDetail digit={p.selected} analysis={a} triggered={triggered} variant="advanced" />
+        <GridView analysis={a} selected={p.selected} onSelect={p.onSelect} variant="advanced" layer={layer} orientation={orientation} triggered={triggered} />
+        <CellDetail digit={p.selected} analysis={a} triggered={triggered} variant="advanced" orientation={orientation} />
       </Section>
 
       <Section title="Interpretation (rule-based)">
@@ -110,6 +146,10 @@ export function Advanced(p: Props) {
           </table></TableWrap>
         </Derivation>
       </Section>
+
+      <KeyNumbersSection report={report} />
+
+      <FrequencySection report={report} />
 
       <Section title="Calculation audit">
         <TableWrap><table className="table">
@@ -238,6 +278,8 @@ export function Advanced(p: Props) {
         </div>
       </Section>
 
+      <FactsSection report={report} />
+
       <Section title="Planes and directional groupings">
         {(['horizontal', 'vertical', 'diagonal'] as const).map((kind) => (
           <div key={kind}>
@@ -262,6 +304,13 @@ export function Advanced(p: Props) {
         ))}
       </Section>
 
+
+      {extras.includes('planetary') && <PlanetSection report={report} />}
+      {extras.includes('elements') && <ElementSection report={report} />}
+      {extras.includes('remedies') && <RemedySection report={report} />}
+      {extras.includes('cycle') && <CycleSection report={report} />}
+      {extras.includes('name') && <NameSection report={report} />}
+      <CompareSection report={report} text={p.compareText} onText={p.onCompareText} />
 
       <Section title="Evidence and confidence">
         <p>Four separate questions are never merged into one score, and no accuracy percentage is given.</p>

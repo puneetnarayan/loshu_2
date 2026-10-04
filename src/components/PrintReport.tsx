@@ -1,7 +1,9 @@
-import { EVIDENCE_LABELS, FIDELITY_LABELS } from '../data/schema';
+import { CONFIDENCE_LABELS, EVIDENCE_LABELS, FIDELITY_LABELS } from '../data/schema';
+import type { Extra } from '../data/schema';
 import { getSource } from '../data/sources';
-import { LINE_NAMES, DIGIT_PLANETS } from '../data/rules';
-import { GRID_LAYOUT, lineLabel } from '../loshu';
+import { DIGIT_PLANETS, LINE_NAMES } from '../data/rules';
+import { FREQUENCY_RANGE, patternFrequencies } from '../lookup';
+import { analyse, compareAnalyses, GRID_LAYOUT, lineLabel, parseDob, planetProfile } from '../loshu';
 import type { Report } from '../loshu';
 
 const STATE_TEXT = { complete: 'Complete', partial: 'Partial', empty: 'Empty' } as const;
@@ -11,7 +13,8 @@ const STATUS_TEXT = { missing: 'Missing', present: 'Present', repeated: 'Repeate
  * Full report used for the PDF. It is only mounted while the browser is printing
  * (see App), so it never duplicates content on screen. All text is rendered as plain text.
  */
-export function PrintReport({ report, name, planetary }: { report: Report; name: string; planetary: boolean }) {
+export function PrintReport({ report, name, extras, compareText }: { report: Report; name: string; extras: readonly Extra[]; compareText: string }) {
+  const planetary = extras.includes('planetary');
   const { analysis: a, triggered, synthesis, checks } = report;
   const sourceIds = [...new Set(triggered.flatMap((t) => t.rule.sourceIds))];
   const passed = checks.filter((c) => c.passed).length;
@@ -78,11 +81,11 @@ export function PrintReport({ report, name, planetary }: { report: Report; name:
 
       <h2>3. The eight lines</h2>
       <table>
-        <thead><tr><th>Line</th><th>Type</th><th>Present</th><th>Missing</th><th>State</th><th>Traditional name</th></tr></thead>
+        <thead><tr><th>Line</th><th>Type</th><th>Present</th><th>Missing</th><th>Weight</th><th>State</th><th>Traditional name</th></tr></thead>
         <tbody>
           {a.lines.map((l) => (
             <tr key={l.def.id}>
-              <td>{lineLabel(l.def)}</td><td>{l.def.kind}</td><td>{l.presentDigits.join(', ') || '—'}</td><td>{l.missingDigits.join(', ') || '—'}</td><td>{STATE_TEXT[l.state]}</td><td>{LINE_NAMES[l.def.id]?.name}</td>
+              <td>{lineLabel(l.def)}</td><td>{l.def.kind}</td><td>{l.presentDigits.join(', ') || '—'}</td><td>{l.missingDigits.join(', ') || '—'}</td><td>{l.weight}</td><td>{STATE_TEXT[l.state]}</td><td>{LINE_NAMES[l.def.id]?.name}</td>
             </tr>
           ))}
         </tbody>
@@ -103,7 +106,24 @@ export function PrintReport({ report, name, planetary }: { report: Report; name:
       <h3>Not covered by any documented rule</h3>
       <ul>{synthesis.unsupported.map((u) => <li key={u.subject}><strong>{u.subject}:</strong> {u.reason}</li>)}</ul>
 
-      <h2>5. Evidence and limitations</h2>
+      <h2>5. Key numbers and how common the pattern is</h2>
+      <p className="note">Low confidence: Driver and Destiny meanings come from one search summary of several guides; no compatibility verdict is made.</p>
+      <RuleList items={report.triggered.filter((t) => t.rule.category === 'driver' || t.rule.category === 'destiny')} />
+      <p>
+        Share of all {FREQUENCY_RANGE.dates.toLocaleString('en-GB')} calendar dates from {FREQUENCY_RANGE.from} to {FREQUENCY_RANGE.to} (not population-weighted) showing the same pattern in this mode. A common pattern is not special and a rare one is not meaningful in itself.
+      </p>
+      <table>
+        <tbody>
+          {patternFrequencies(a).map((i) => (
+            <tr key={i.key}><td>{i.label}</td><td>{i.percent.toFixed(2)}%</td></tr>
+          ))}
+        </tbody>
+      </table>
+
+      <h2>6. Optional readings</h2>
+      <OptionalReadings report={report} extras={extras} compareText={compareText} />
+
+      <h2>7. Evidence and limitations</h2>
       <ul>
         <li><strong>Mathematical verification:</strong> {passed === checks.length ? 'Calculation verified' : 'Check failed'} ({passed}/{checks.length} checks). Arithmetic only.</li>
         <li><strong>Scientific evidence:</strong> every reading is a traditional interpretation without established scientific validation. The closest empirical test found (Genovese, 2017, per a search summary) reported no link between birth numbers and Nobel Prize winners and does not test Lo Shu grids.</li>
@@ -112,7 +132,7 @@ export function PrintReport({ report, name, planetary }: { report: Report; name:
         <li>Do not use for medical, financial, legal or relationship decisions.</li>
       </ul>
 
-      <h2>6. Sources cited by the rules above</h2>
+      <h2>8. Sources cited by the rules above</h2>
       <ul>
         {sourceIds.map((id) => {
           const s = getSource(id);
@@ -135,10 +155,85 @@ function RuleList({ items }: { items: Report['triggered'] }) {
         <li key={t.rule.id}>
           <strong>{t.rule.title}</strong> [{t.rule.id}]: {t.rule.advancedText}{' '}
           <span className="small">
-            ({EVIDENCE_LABELS[t.rule.evidenceClassification].short}; {FIDELITY_LABELS[t.rule.sourceFidelityStatus].short})
+            ({EVIDENCE_LABELS[t.rule.evidenceClassification].short}; {FIDELITY_LABELS[t.rule.sourceFidelityStatus].short}; {CONFIDENCE_LABELS[t.rule.confidence].short})
           </span>
+          {t.rule.confidence !== 'moderate' && <span className="small"> Rider: {t.rule.confidenceReason}</span>}
         </li>
       ))}
     </ul>
+  );
+}
+
+const RIDER = {
+  planetary: 'The digit-to-planet mapping was confirmed by several search summaries (Indian scheme); the planet themes are general keywords, partly from background knowledge, and not verified.',
+  elements: 'The element of each number comes from Feng Shui / Nine Star Ki, a different tradition from Indian Lo Shu numerology; the element themes were not verified.',
+  remedies: 'Remedies come from search summaries of commercial guides. No evidence that any traditional remedy changes anything; none is promised. Gemstone advice is omitted. Do not use remedies in place of professional advice.',
+  cycle: 'Forecast-style reading from Western numerology, not Lo Shu tradition; generic, unvalidated meanings; no source text was read.',
+  name: 'A separate Pythagorean system; schools differ on Y, master numbers and which name to use; the readings reuse the Lo Shu keywords for each digit. The name never changes the grid.',
+} as const;
+
+function OptionalReadings({ report, extras, compareText }: { report: Report; extras: readonly Extra[]; compareText: string }) {
+  const a = report.analysis;
+  const cat = (...c: string[]) => report.triggered.filter((t) => c.includes(t.rule.category));
+  const profile = planetProfile(a, DIGIT_PLANETS);
+  const second = compareText.trim() ? parseDob(compareText) : null;
+  const other = second && second.ok ? analyse(second.dob, 'dob-only') : null;
+  const cmp = other ? compareAnalyses(analyse(a.dob, 'dob-only'), other) : null;
+  return (
+    <>
+      {extras.includes('planetary') && (
+        <>
+          <h3>Planetary profile (low confidence)</h3>
+          <p className="note">{RIDER.planetary}</p>
+          <p>Most repeated: {profile.dominant.join(', ') || 'none'}. Not represented: {profile.absent.join(', ') || 'none'}.</p>
+          <RuleList items={cat('planet-profile', 'planetary')} />
+        </>
+      )}
+      {extras.includes('elements') && (
+        <>
+          <h3>Five elements (low confidence)</h3>
+          <p className="note">{RIDER.elements}</p>
+          <p>{a.elements.rows.map((r) => `${r.element} ${r.count}`).join(' · ')}. Most represented: {a.elements.dominant.join(', ') || 'none'}. Not represented: {a.elements.absent.join(', ') || 'none'}.</p>
+          <RuleList items={cat('element')} />
+        </>
+      )}
+      {extras.includes('remedies') && (
+        <>
+          <h3>Reported remedies (low confidence)</h3>
+          <p className="note">{RIDER.remedies}</p>
+          <RuleList items={cat('remedy')} />
+        </>
+      )}
+      {extras.includes('cycle') && (
+        <>
+          <h3>Personal year cycle (very low confidence)</h3>
+          <p className="note">{RIDER.cycle}</p>
+          <p>Personal Year for {report.cycle.year}: {report.cycle.personalYear.value} ({report.cycle.personalYear.steps.join(' → ')}).</p>
+          <RuleList items={cat('cycle')} />
+        </>
+      )}
+      {extras.includes('name') && report.nameNumbers && (
+        <>
+          <h3>Name numbers (very low confidence)</h3>
+          <p className="note">{RIDER.name}</p>
+          <p>
+            Expression {report.nameNumbers.expression.chain.join(' → ')}
+            {report.nameNumbers.soulUrge ? `; Soul Urge ${report.nameNumbers.soulUrge.chain.join(' → ')}` : ''}
+            {report.nameNumbers.personality ? `; Personality ${report.nameNumbers.personality.chain.join(' → ')}` : ''}.
+          </p>
+          <RuleList items={cat('name')} />
+        </>
+      )}
+      {cmp && other && (
+        <>
+          <h3>Comparison with {other.dob.normalised} (descriptive arithmetic only)</h3>
+          <p className="note">No compatibility verdict is made; friend/enemy tables differ between sources and could not be verified.</p>
+          <p>
+            Present in both: {cmp.both.join(', ') || '—'}. Only in {a.dob.normalised}: {cmp.onlyA.join(', ') || '—'}. Only in {other.dob.normalised}: {cmp.onlyB.join(', ') || '—'}. Missing from both: {cmp.neither.join(', ') || '—'}.
+          </p>
+        </>
+      )}
+      {extras.length === 0 && !cmp && <p>No optional readings were selected.</p>}
+    </>
   );
 }

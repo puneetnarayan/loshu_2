@@ -25,7 +25,42 @@ export type SourceFidelity =
 
 export type SourceAgreement = 'shared' | 'disputed' | 'school-specific' | 'unknown';
 
-export type Category = 'number' | 'repetition' | 'missing-number' | 'line' | 'empty-line' | 'planetary';
+export type Category =
+  | 'number'
+  | 'repetition'
+  | 'missing-number'
+  | 'line'
+  | 'empty-line'
+  | 'partial-line'
+  | 'planetary'
+  | 'driver'
+  | 'destiny'
+  | 'planet-profile'
+  | 'element'
+  | 'remedy'
+  | 'cycle'
+  | 'name';
+
+/** Optional readings that can be switched on and off. */
+export type Extra = 'planetary' | 'remedies' | 'elements' | 'cycle' | 'name';
+export const EXTRAS: readonly Extra[] = ['planetary', 'remedies', 'elements', 'cycle', 'name'];
+
+export type Element = 'water' | 'earth' | 'wood' | 'metal' | 'fire';
+export type DerivedKind = 'driver' | 'destiny' | 'expression' | 'soul-urge' | 'personality' | 'personal-year';
+
+export interface DerivedCondition {
+  kind: DerivedKind;
+  value: Digit;
+}
+
+export interface ElementCondition {
+  element: Element;
+  /** `absent`: no digit of this element is present. `dominant`: most represented element(s). */
+  state: 'absent' | 'dominant';
+}
+
+/** How much trust the wording deserves. Traditional readings are never rated "high". */
+export type Confidence = 'moderate' | 'low' | 'very-low';
 export type Direction = 'strength' | 'emphasis' | 'reflection';
 
 export interface CountCondition {
@@ -38,6 +73,8 @@ export interface LineCondition {
   lineId: string;
   /** `not-complete` matches partial or empty. */
   state: LineState | 'not-complete';
+  /** For partial lines: exactly this many of the three digits are present. */
+  presentCount?: 1 | 2;
 }
 
 export interface SourceRecord {
@@ -71,6 +108,8 @@ export interface InterpretationRule {
   requiredDigits: Digit[];
   requiredCounts: CountCondition[];
   requiredLines: LineCondition[];
+  requiredDerived?: DerivedCondition[];
+  requiredElements?: ElementCondition[];
   calculationMethod: string;
   calculationExplanation: string;
   basicText: string;
@@ -87,18 +126,36 @@ export interface InterpretationRule {
   limitations: string[];
   version: string;
   // Engine-facing fields (project additions to the specified schema).
-  /** 1 = primary pattern, 2 = secondary. */
-  priority: 1 | 2;
+  /** 1 = primary pattern, 2 = secondary, 3 = context (key numbers and optional readings). */
+  priority: 1 | 2 | 3;
+  /** Trust level of the wording, with the reason shown to the reader as a rider. */
+  confidence: Confidence;
+  confidenceReason: string;
   /** Project-assigned synthesis tags. They are NOT claims made by any source. */
   themes: string[];
   direction: Direction;
-  /** `planetary` rules only run when the planetary option is switched on. */
-  activation: 'default' | 'planetary';
+  /** Optional readings only run when their option is switched on. */
+  activation: 'default' | Extra;
   /** Short clause used by the deterministic summary template. */
   summaryPhrase: string;
   /** Rules sharing a conclusionKey are treated as duplicates by synthesis. */
   conclusionKey?: string;
 }
+
+export const CONFIDENCE_LABELS: Record<Confidence, { short: string; rider: string }> = {
+  moderate: {
+    short: 'Moderate confidence',
+    rider: 'Several search summaries agree on the idea, but the pages were not read and the reading is still not scientifically validated.',
+  },
+  low: {
+    short: '⚠ Low confidence',
+    rider: 'Low confidence: the wording rests on a single search summary, or on sources that disagree or were not identified. Treat it as an idea to reflect on, not as information about you.',
+  },
+  'very-low': {
+    short: '⚠ Very low confidence',
+    rider: 'Very low confidence: forecast-style or convention-dependent reading with no verified source texts and no scientific support. Entertainment and reflection only.',
+  },
+};
 
 export const EVIDENCE_LABELS: Record<EvidenceClassification, { short: string; explanation: string }> = {
   'mathematical-fact': {

@@ -51,3 +51,15 @@ To update an interpretation, edit `src/data/rules.ts` (or the registry) only; th
 ## Privacy
 
 All computation is local. The date of birth is held in React state only: no `localStorage`, `sessionStorage`, cookies, URL, file name, analytics, or network request. Tests assert no `fetch` call and no storage write. Interpretation text is rendered by React as text (no HTML injection). External links use `target="_blank"` with `rel="noopener noreferrer"` and are labelled as external.
+
+## Confidence riders
+
+Every rule has `confidence` (`moderate`, `low` or `very-low`; never "high") and a `confidenceReason`. A rule can be `moderate` only if its fidelity is `multiple-summaries-agree`; the validator enforces this. Low and very-low rules show a visible rider in the page (a text label, a distinct border style and the reason, not colour alone) and in the PDF. Section-level riders explain why a whole optional reading is weak (remedies, planets, elements, cycle, name numbers, the mirror view).
+
+## Optional readings and derived data
+
+- Extras (planetary profile, elements, remedies, cycle, name numbers) are switched on in Advanced and default to on there; Basic shows none of them. Driver/Destiny readings, partial-line tiers and pattern frequency are in both tabs.
+- The name is only used for the Pythagorean name numbers (letters A–Z; accents stripped; other characters ignored) and the "Reading for" label. It never changes the grid.
+- Personal year uses the calendar year of the date the page was opened (`asOf` is injectable for tests).
+- Pattern frequencies live in `src/data/frequencies.ts`, generated from the engine over every calendar date 1900–2025. Regenerate with `GEN_FREQ=1 npx vitest run tests/genFrequencies.test.ts`; a test fails if the committed file differs from a fresh computation.
+- Rules are in `src/data/rules.ts` (core) and `src/data/extraRules.ts`; both are merged in `src/data/catalogue.ts`.

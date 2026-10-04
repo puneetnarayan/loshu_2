@@ -95,3 +95,26 @@ The quoted figures are the same order of magnitude and show the same roughly fiv
 - How a "missing arrow" is defined in primary Indian numerology texts was not checked; the labels come from commercial sites.
 - Kua conventions (Li Chun boundaries, time zones, special cases) are unverified, so Kua is unavailable.
 - The Genovese figures and the Forer details come from summaries and should be checked against the papers.
+
+---
+
+## Third pass: extra interpretations (same method, same limit)
+
+Still search summaries only; no page opened. Added on request ("build all of them, put a rider wherever confidence is low"). Every new rule carries a `confidence` (moderate, low or very low) and a plain-text `confidenceReason`; the UI and the PDF print it as a rider.
+
+| Feature | What the summaries supported | Confidence | Not used, and why |
+|---|---|---|---|
+| Partial-line tiers | One summary described plane strength tiers: strong (3 digits), moderate (2), weak (1), absent (0). | Low | Per-line, digit-specific partial readings: none found. Tier meaning is generic wording written by this project. |
+| Driver (Moolank) 1–9 | One-line meanings from a result set of Mulank guides. | Low | Lucky numbers and success timing. |
+| Destiny (Bhagyank) 1–9 | Meanings for 1, 2, 3, 4, 5, 8, 9 visible; 6 and 7 not visible, so those two extend the Lo Shu keywords and are labelled `insufficient-documentation`. | Low | The claim that the Conductor shows life direction "after age 35" (predictive). |
+| Driver/Destiny compatibility | A friend/average/enemy table was visible only for rows 1–4 and other results differ. | none | **Not implemented.** No compatibility verdict anywhere. |
+| Planet profile | Digit-to-planet mapping confirmed by several summaries. Planet themes are short keywords partly from background knowledge. | Low | Planet friendships and dashas. |
+| Five elements | Mapping 1 water; 2, 5, 8 earth; 3, 4 wood; 6, 7 metal; 9 fire confirmed by several summaries (Feng Shui / Nine Star Ki). Element themes are general keywords from background knowledge. | Low | Combining elements with the Indian planetary scheme (different traditions). |
+| Remedies | Habits, colours, mantras, charity and Feng Shui objects reported for missing 1–9 and repeated 1, 4, 5. | Low | **Gemstones** (cost, no evidence). Remedies for repeated 2, 3, 6, 7, 8, 9: none found. No remedy is presented as treating anything. |
+| Personal year | Formula (birth day + birth month + year, digits added, reduced) agrees across summaries and a worked example (22 December, 2026 gives 8) is reproduced by a test. Meanings 1–9 are generic. | Very low | Personal month; the "Lo Shu grid for the year" (method not establishable); Lo Shu tradition does not include it. |
+| Name numbers | Pythagorean table (A J S = 1 … I R = 9) and the Expression / Soul Urge / Personality method agree across summaries. Readings reuse the Lo Shu keywords. | Very low | Chaldean table; master-number rules (the reduction chain is shown instead); Y is treated as a consonant (summaries differ). |
+| Two-date comparison | Descriptive set arithmetic only (shared and unshared digits, line states, Driver/Destiny equality). | Arithmetic is reproducible; no interpretation | Any compatibility verdict. |
+| Historical mirror view | Per a summary of an encyclopedia article, the *Da Dai Liji* (about 80 CE) shows 2-9-4 / 7-5-3 / 6-1-8. Drawing only; no calculation changes. | Low | — |
+| Line weights, grid facts, pattern frequency | Arithmetic, tested. Frequencies are regenerated from the engine and checked against an independent string-based count. | Reproducible | Any meaning for heavy or light lines (no source). |
+
+Sources added to the registry: tier guides, Mulank/Conductor guides, remedy guides, element mapping pages, personal-year pages and name-numerology pages (see `src/data/sources.ts`). One result (an astrology blog's compatibility table) was reviewed and deliberately not registered because nothing relies on it.

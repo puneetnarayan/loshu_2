@@ -1,4 +1,5 @@
 import { LINE_NAMES } from '../data/rules';
+import { FREQUENCY_RANGE, patternFrequencies } from '../lookup';
 import type { Digit, Report } from '../loshu';
 import { lineLabel } from '../loshu';
 import { CellDetail, GridView } from './GridView';
@@ -17,6 +18,9 @@ export function Basic({ report, selected, onSelect }: Props) {
   const missing = triggered.filter((t) => t.rule.category === 'missing-number');
   const complete = triggered.filter((t) => t.rule.category === 'line');
   const empty = triggered.filter((t) => t.rule.category === 'empty-line');
+  const partialTiers = triggered.filter((t) => t.rule.category === 'partial-line');
+  const keyNumbers = triggered.filter((t) => t.rule.category === 'driver' || t.rule.category === 'destiny');
+  const frequencies = patternFrequencies(a);
   const suggestions = [...new Set([...missing, ...empty, ...repeated, ...complete].map((t) => t.rule.reflectionSuggestion))];
 
   return (
@@ -158,10 +162,20 @@ export function Basic({ report, selected, onSelect }: Props) {
             })}
           </ul>
         )}
-        {a.partialLineIds.length > 0 && (
-          <p className="muted">
-            {a.partialLineIds.length} other line{a.partialLineIds.length === 1 ? ' has' : 's have'} one or two of their numbers. We found no documented reading for that situation, so we do not make one up.
-          </p>
+        {partialTiers.length > 0 && (
+          <>
+            <h4>Partly present lines</h4>
+            <p className="muted">Some guides grade a line by how many of its three numbers appear: two is moderate, one is weak. They do not read which numbers those are, so neither do we.</p>
+            <ul className="plain">
+              {partialTiers.map((t) => (
+                <li key={t.rule.id}>
+                  <strong>{lineLabel(a.lines.find((l) => l.def.id === t.rule.requiredLines[0]?.lineId)!.def)}</strong> · {LINE_NAMES[t.rule.requiredLines[0]!.lineId]?.name}: {t.rule.basicText}
+                  <EvidenceLabel rule={t.rule} />
+                  <RuleDerivation rule={t.rule} why={t.why} />
+                </li>
+              ))}
+            </ul>
+          </>
         )}
       </Section>
 
@@ -169,6 +183,26 @@ export function Basic({ report, selected, onSelect }: Props) {
         {synthesis.summary.map((s) => (
           <p key={s}>{s}</p>
         ))}
+        <h4>Your two key numbers</h4>
+        <ul className="plain">
+          {keyNumbers.map((t) => (
+            <li key={t.rule.id}>
+              {t.rule.basicText}
+              <EvidenceLabel rule={t.rule} />
+              <RuleDerivation rule={t.rule} why={t.why} />
+            </li>
+          ))}
+        </ul>
+        <h4>How common is your pattern?</h4>
+        <p>
+          Out of all {FREQUENCY_RANGE.dates.toLocaleString('en-GB')} calendar dates from {FREQUENCY_RANGE.from.slice(0, 4)} to {FREQUENCY_RANGE.to.slice(0, 4)}, the share that show the same pattern as yours:
+        </p>
+        <ul>
+          {frequencies.map((f) => (
+            <li key={f.key}>{f.label}: <strong>{f.percent.toFixed(2)}%</strong> of dates</li>
+          ))}
+        </ul>
+        <p className="muted small">A common pattern is not special and a rare one is not meaningful in itself. This is arithmetic about calendars, not about people.</p>
         <Derivation>
           <p>This summary is built only from the rules that matched your date:</p>
           <ul>

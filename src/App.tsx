@@ -5,10 +5,12 @@ import { Advanced } from './components/Advanced';
 import { Basic } from './components/Basic';
 import { DateForm } from './components/DateForm';
 import { GridView, CellDetail } from './components/GridView';
-import type { GridLayer } from './components/GridView';
+import type { GridLayer, Orientation } from './components/GridView';
 import { HelpPanel } from './components/Help';
 import { PrintReport } from './components/PrintReport';
 import { buildReport, parseDob } from './loshu';
+import { EXTRAS } from './data/schema';
+import type { Extra } from './data/schema';
 import type { Digit, OverlayModeId } from './loshu';
 
 type Tab = 'basic' | 'advanced';
@@ -30,7 +32,10 @@ export function App() {
   const [printing, setPrinting] = useState(false);
   const [mode, setMode] = useState<OverlayModeId>('dob-only');
   const [layer, setLayer] = useState<GridLayer>('raw');
-  const [planetary, setPlanetary] = useState(false);
+  const [extras, setExtras] = useState<Extra[]>([...EXTRAS]); // Advanced shows every optional reading by default
+  const [orientation, setOrientation] = useState<Orientation>('modern');
+  const [compareText, setCompareText] = useState('');
+  const asOf = useMemo(() => new Date(), []); // fixed for the session so the personal year is stable
   const [selected, setSelected] = useState<Digit | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
   const tabRefs = useRef<Record<Tab, HTMLButtonElement | null>>({ basic: null, advanced: null });
@@ -42,8 +47,8 @@ export function App() {
   const error = !parsed.ok && text.trim() !== '' && (text.trim().length >= 10 || touched) ? parsed.error : null;
 
   // Both tabs call the same engine. Basic is always DOB-only; Advanced uses the chosen overlay mode.
-  const basicReport = useMemo(() => (dob ? buildReport(dob, 'dob-only') : null), [dob]);
-  const advancedReport = useMemo(() => (dob ? buildReport(dob, mode, { planetary }) : null), [dob, mode, planetary]);
+  const basicReport = useMemo(() => (dob ? buildReport(dob, 'dob-only', { asOf }) : null), [dob, asOf]);
+  const advancedReport = useMemo(() => (dob ? buildReport(dob, mode, { extras, name, asOf }) : null), [dob, mode, extras, name, asOf]);
 
   const reset = () => {
     setText('');
@@ -51,7 +56,9 @@ export function App() {
     setTouched(false);
     setMode('dob-only');
     setLayer('raw');
-    setPlanetary(false);
+    setExtras([...EXTRAS]);
+    setOrientation('modern');
+    setCompareText('');
     setSelected(null);
   };
   // The report component is mounted only while printing so it never duplicates the on-screen content.
@@ -142,8 +149,14 @@ export function App() {
             onMode={changeMode}
             layer={layer}
             onLayer={setLayer}
-            planetary={planetary}
-            onPlanetary={setPlanetary}
+            extras={extras}
+            onExtras={setExtras}
+            orientation={orientation}
+            onOrientation={setOrientation}
+            compareText={compareText}
+            onCompareText={setCompareText}
+            name={name}
+            asOf={asOf}
             selected={selected}
             onSelect={setSelected}
           />
@@ -157,7 +170,7 @@ export function App() {
       </div>
       {printing && advancedReport && (
         <div className="print-only">
-          <PrintReport report={advancedReport} name={name} planetary={planetary} />
+          <PrintReport report={advancedReport} name={name} extras={extras} compareText={compareText} />
         </div>
       )}
     </div>
