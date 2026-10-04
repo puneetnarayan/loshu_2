@@ -9,8 +9,11 @@ import type { GridLayer, Orientation } from './components/GridView';
 import { HelpPanel } from './components/Help';
 import { PrintReport } from './components/PrintReport';
 import { reportBlocks } from './report/blocks';
+import { LangProvider, useLang } from './i18n';
+import type { Lang } from './i18n';
+import { ZH_NOTICE } from './i18n/zh';
 import { buildReport, parseDob } from './loshu';
-import { EXTRAS } from './data/schema';
+import { DEFAULT_EXTRAS } from './data/schema';
 import type { Extra } from './data/schema';
 import type { Digit, OverlayModeId } from './loshu';
 
@@ -26,17 +29,28 @@ const TABS: Array<{ id: Tab; label: string; blurb: string }> = [
 ];
 
 export function App() {
+  const [lang, setLang] = useState<Lang>('en');
+  return (
+    <LangProvider lang={lang}>
+      <AppInner lang={lang} onLang={setLang} />
+    </LangProvider>
+  );
+}
+
+function AppInner({ lang, onLang }: { lang: Lang; onLang: (l: Lang) => void }) {
+  const { tr, isZh } = useLang();
   const [tab, setTab] = useState<Tab>('advanced'); // Advanced is the default
   const [text, setText] = useState(DEFAULT_DOB_TEXT);
   const [name, setName] = useState(DEFAULT_NAME);
   const [kuaFormula, setKuaFormula] = useState<'both' | 'male' | 'female'>('both');
   const [touched, setTouched] = useState(false);
   const [printing, setPrinting] = useState(false);
+  const [brand, setBrand] = useState({ business: '', contact: '', operator: '' });
   const [pdfBusy, setPdfBusy] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
   const [mode, setMode] = useState<OverlayModeId>('dob-only');
   const [layer, setLayer] = useState<GridLayer>('raw');
-  const [extras, setExtras] = useState<Extra[]>([...EXTRAS]); // Advanced shows every optional reading by default
+  const [extras, setExtras] = useState<Extra[]>([...DEFAULT_EXTRAS]); // Advanced shows every optional reading except gemstones by default
   const [orientation, setOrientation] = useState<Orientation>('modern');
   const [compareText, setCompareText] = useState('');
   const asOf = useMemo(() => new Date(), []); // fixed for the session so the personal year is stable
@@ -62,7 +76,8 @@ export function App() {
     setPdfError(null);
     setMode('dob-only');
     setLayer('raw');
-    setExtras([...EXTRAS]);
+    setExtras([...DEFAULT_EXTRAS]);
+    setBrand({ business: '', contact: '', operator: '' });
     setOrientation('modern');
     setCompareText('');
     setSelected(null);
@@ -87,7 +102,7 @@ export function App() {
     try {
       const generated = asOf.toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
       const { downloadBytes, renderPdf } = await import('./pdf/renderPdf'); // loaded only when a PDF is requested
-      const bytes = await renderPdf(reportBlocks(advancedReport, { name, extras, compareText, generated }));
+      const bytes = await renderPdf(reportBlocks(advancedReport, { name, extras, compareText, generated, brand }));
       downloadBytes(bytes, 'lo-shu-report.pdf');
     } catch {
       setPdfError('The PDF could not be created. Try “Print / Save as PDF” instead.');
@@ -119,19 +134,24 @@ export function App() {
   };
 
   return (
-    <div className="app">
+    <div className="app" lang={isZh ? 'zh-Hant' : 'en'}>
       <div className="screen-only">
       <header className="header">
-        <h1>Lo Shu Grid Calculator</h1>
-        <p className="muted">Deterministic calculation with a transparent, source-labelled traditional reading. Runs entirely in your browser.</p>
+        <h1>{tr('Lo Shu Grid Calculator', '洛書九宮格計算器')}</h1>
+        <p className="muted">{tr('Deterministic calculation with a transparent, source-labelled traditional reading. Runs entirely in your browser.', '以確定性的計算搭配透明、標明來源的傳統解讀。完全在你的瀏覽器中執行。')}</p>
+        <div className="lang-switch" role="group" aria-label="Language / 語言">
+          <button type="button" className={`btn${lang === 'en' ? ' btn-primary' : ''}`} aria-pressed={lang === 'en'} onClick={() => onLang('en')}>English</button>
+          <button type="button" className={`btn${lang === 'zh-TW' ? ' btn-primary' : ''}`} aria-pressed={lang === 'zh-TW'} onClick={() => onLang('zh-TW')} lang="zh-Hant">繁體中文</button>
+        </div>
+        {isZh && <p className="rider rider-low" role="note">{ZH_NOTICE}</p>}
         <HelpPanel open={helpOpen} onToggle={() => setHelpOpen((o) => !o)} />
       </header>
 
-      <DateForm value={text} name={name} kuaFormula={kuaFormula} onKuaFormula={setKuaFormula} error={error} onChange={setText} onNameChange={setName} onBlur={() => setTouched(true)} onReset={reset} onReport={downloadReport} onPrint={() => window.print()} canReport={dob !== null} busy={pdfBusy} reportError={pdfError} />
+      <DateForm value={text} name={name} brand={brand} onBrand={setBrand} kuaFormula={kuaFormula} onKuaFormula={setKuaFormula} error={error} onChange={setText} onNameChange={setName} onBlur={() => setTouched(true)} onReset={reset} onReport={downloadReport} onPrint={() => window.print()} canReport={dob !== null} busy={pdfBusy} reportError={pdfError} />
 
       {dob && (
         <p className="prepared">
-          Reading for {name.trim() ? <strong>{name.trim()}</strong> : 'the date'} · born <strong>{dob.normalised}</strong>
+          {tr('Reading for ', '解讀對象：')}{name.trim() ? <strong>{name.trim()}</strong> : tr('the date', '這個日期')} · {tr('born ', '出生日期 ')}<strong>{dob.normalised}</strong>
         </p>
       )}
 
@@ -152,8 +172,8 @@ export function App() {
             onClick={() => setTab(t.id)}
             onKeyDown={onTabKey}
           >
-            <strong>{t.label}</strong>
-            <span className="small">{t.blurb}</span>
+            <strong>{isZh ? (t.id === 'basic' ? '基本' : '進階') : t.label}</strong>
+            <span className="small">{isZh ? (t.id === 'basic' ? '白話解讀' : '完整計算與來源（英文）') : t.blurb}</span>
           </button>
         ))}
       </div>
@@ -188,12 +208,12 @@ export function App() {
         ))}
 
       <footer className="footer muted small">
-        Traditional interpretations are shown for cultural and educational interest. They are not scientifically validated and are not advice.
+        {tr('Traditional interpretations are shown for cultural and educational interest. They are not scientifically validated and are not advice.', '傳統解讀僅供文化與教育興趣。它們未經科學驗證，也不是建議。')}
       </footer>
       </div>
       {printing && advancedReport && (
         <div className="print-only">
-          <PrintReport report={advancedReport} name={name} extras={extras} compareText={compareText} />
+          <PrintReport report={advancedReport} name={name} extras={extras} compareText={compareText} brand={brand} />
         </div>
       )}
     </div>
@@ -201,9 +221,10 @@ export function App() {
 }
 
 function EmptyState({ id, selected, onSelect }: { id: Tab; selected: Digit | null; onSelect: (d: Digit) => void }) {
+  const { tr } = useLang();
   return (
     <div id={`panel-${id}`} role="tabpanel" aria-labelledby={`tab-${id}`} tabIndex={0} className="tabpanel">
-      <p className="intro">Enter a complete, valid date of birth above. The reading appears automatically as soon as the date is complete. This is the fixed grid your digits will be placed on:</p>
+      <p className="intro">{tr('Enter a complete, valid date of birth above. The reading appears automatically as soon as the date is complete. This is the fixed grid your digits will be placed on:', '請在上方輸入完整且有效的出生日期。日期一完整，解讀就會自動出現。這是你的數字將被放入的固定九宮格：')}</p>
       <GridView analysis={null} selected={selected} onSelect={onSelect} variant={id} />
       <CellDetail digit={null} analysis={null} triggered={[]} variant={id} />
     </div>

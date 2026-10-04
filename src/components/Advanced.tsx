@@ -5,7 +5,7 @@ import type { Extra } from '../data/schema';
 import { digitRule, ruleById } from '../lookup';
 import { DIGITS, OVERLAY_MODES, buildReport, lineLabel } from '../loshu';
 import type { Digit, OverlayModeId, Report } from '../loshu';
-import { CompareSection, CycleSection, ElementSection, FactsSection, FrequencySection, KeyNumbersSection, KuaSection, NameSection, PlanetSection, RemedySection } from './AdvancedExtras';
+import { CompareSection, CycleSection, ElementSection, FactsSection, FrequencySection, GemstoneSection, KeyNumbersSection, KuaSection, NameSection, PlanetSection, RemedySection } from './AdvancedExtras';
 import { CellDetail, GridView } from './GridView';
 import type { GridLayer, Orientation } from './GridView';
 import { Derivation, EvidenceLabel, Rider, RuleDerivation, RuleRecord, Section, StatusTag, TableWrap, VerificationBadge } from './shared';
@@ -32,7 +32,9 @@ const EXTRA_LABEL: Record<Extra, string> = {
   planetary: 'Planetary associations and profile (Indian scheme)',
   elements: 'Five elements (Feng Shui / Nine Star Ki mapping)',
   kua: 'Kua number (Feng Shui; needs the Li Chun boundary, shown separately from the grid)',
+  relations: 'Driver–Destiny relation (one inconsistent table, very low confidence)',
   remedies: 'Reported remedies (habits and traditional practices)',
+  gemstones: 'Gemstones reported for the Driver number (retail sources, very low confidence, off by default)',
   cycle: 'Personal year cycle (forecast style, very low confidence)',
   name: 'Name numbers (Pythagorean, very low confidence)',
 };
@@ -148,7 +150,7 @@ export function Advanced(p: Props) {
         </Derivation>
       </Section>
 
-      <KeyNumbersSection report={report} />
+      <KeyNumbersSection report={report} showRelations={extras.includes('relations')} />
 
       <FrequencySection report={report} />
 
@@ -310,6 +312,7 @@ export function Advanced(p: Props) {
       {extras.includes('elements') && <ElementSection report={report} />}
       {extras.includes('kua') && <KuaSection report={report} />}
       {extras.includes('remedies') && <RemedySection report={report} />}
+      {extras.includes('gemstones') && <GemstoneSection report={report} />}
       {extras.includes('cycle') && <CycleSection report={report} />}
       {extras.includes('name') && <NameSection report={report} />}
       <CompareSection report={report} text={p.compareText} onText={p.onCompareText} />

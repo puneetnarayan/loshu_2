@@ -1,4 +1,4 @@
-import { DIGITS } from './constants';
+import { DIGITS, LINES } from './constants';
 import { reduceToDigit } from './overlays';
 import type { Element } from '../data/schema';
 import type { Analysis, Digit, DerivedNumber, ParsedDob } from './types';
@@ -157,5 +157,52 @@ export function compareAnalyses(a: Analysis, b: Analysis): Comparison {
       a: l.rawState,
       b: b.lines[i]!.rawState,
     })),
+  };
+}
+
+// ---------- Personal month (Personal Year + calendar month, reduced) ----------
+export interface PersonalMonth {
+  month: number;
+  value: Digit;
+  steps: string[];
+}
+export function personalMonths(py: DerivedNumber): PersonalMonth[] {
+  return Array.from({ length: 12 }, (_, i) => {
+    const month = i + 1;
+    const sum = py.value + month;
+    const { value, steps } = reduceToDigit(sum);
+    return { month, value, steps: [`${py.value} + ${month} = ${sum}`, ...steps] };
+  });
+}
+
+const stateOf = (digits: readonly Digit[], counts: Record<Digit, number>): 'complete' | 'partial' | 'empty' => {
+  const present = digits.filter((d) => counts[d] > 0).length;
+  return present === 3 ? 'complete' : present === 0 ? 'empty' : 'partial';
+};
+
+// ---------- Year grid: raw date digits plus the non-zero digits of a chosen year ----------
+export interface YearGrid {
+  year: number;
+  addedDigits: Digit[];
+  counts: Record<Digit, number>;
+  lines: Array<{ id: string; label: string; before: string; after: string }>;
+  newlyComplete: string[];
+  newlyNonEmpty: string[];
+  statusChanges: Array<{ digit: Digit; before: number; after: number }>;
+}
+/** Descriptive arithmetic only. The method is described vaguely in one search summary, so no forecast is made. */
+export function yearGrid(a: Analysis, year: number): YearGrid {
+  const added = [...String(year)].map(Number).filter((d) => d !== 0) as Digit[];
+  const counts = { ...a.audit.rawCounts };
+  for (const d of added) counts[d] += 1;
+  const lines = LINES.map((l) => ({ id: l.id, label: l.digits.join('–'), before: stateOf(l.digits, a.audit.rawCounts), after: stateOf(l.digits, counts) }));
+  return {
+    year,
+    addedDigits: added,
+    counts,
+    lines,
+    newlyComplete: lines.filter((l) => l.before !== 'complete' && l.after === 'complete').map((l) => l.id),
+    newlyNonEmpty: lines.filter((l) => l.before === 'empty' && l.after !== 'empty').map((l) => l.id),
+    statusChanges: DIGITS.filter((d) => (a.audit.rawCounts[d] === 0) !== (counts[d] === 0) || (a.audit.rawCounts[d] > 1) !== (counts[d] > 1)).map((d) => ({ digit: d, before: a.audit.rawCounts[d], after: counts[d] })),
   };
 }

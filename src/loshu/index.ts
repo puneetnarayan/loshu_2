@@ -19,6 +19,7 @@ export * from './synthesis';
 export * from './extras';
 export * from './frequency';
 export * from './kua';
+export * from './relations';
 
 export interface Report {
   analysis: ReturnType<typeof analyse>;

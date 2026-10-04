@@ -205,6 +205,72 @@ describe('extra interpretations', () => {
   });
 });
 
+describe('more optional readings in the page', () => {
+  const h3s = () => screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent);
+  it('gemstones are off by default and, once switched on, show a very-low-confidence rider and the Driver pairing', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    expect(screen.getByRole('checkbox', { name: /Gemstones reported/ })).not.toBeChecked();
+    expect(h3s()).not.toContain('Gemstones reported for the Driver number (optional)');
+    await user.click(screen.getByRole('checkbox', { name: /Gemstones reported/ }));
+    const sec = screen.getByRole('heading', { level: 3, name: 'Gemstones reported for the Driver number (optional)' }).closest('section')!;
+    expect(sec).toHaveTextContent(/Very low confidence/);
+    expect(sec).toHaveTextContent(/jewellery retailers, who profit from sales/);
+    expect(sec).toHaveTextContent(/Driver 2 → pearl/); // 02-06-1970: Driver 2
+    expect(sec).toHaveTextContent(/do not buy a stone because of this/i);
+  });
+  it('shows the Driver–Destiny relation with its conflict warning (02-06-1970: Driver 2, Destiny 7 -> neutral)', () => {
+    render(<App />);
+    const sec = screen.getByRole('heading', { level: 3, name: 'Driver and Destiny readings' }).closest('section')!;
+    expect(sec).toHaveTextContent(/Driver and Destiny relation \(optional\)/);
+    expect(sec).toHaveTextContent(/row 8 lists 4 as both friendly and enemy/);
+    expect(sec).toHaveTextContent(/listed as neutral to your Driver number/);
+  });
+  it('shows 12 personal months and a descriptive year grid, each with a rider', () => {
+    render(<App />);
+    const sec = screen.getByRole('heading', { level: 3, name: /Personal year cycle/ }).closest('section')!;
+    const year = new Date().getFullYear();
+    expect(within(sec).getByRole('heading', { level: 4, name: `Personal month numbers for ${year}` })).toBeInTheDocument();
+    const table = within(sec).getAllByRole('table')[0]!;
+    expect(within(table).getAllByRole('row')).toHaveLength(13); // header + 12 months
+    expect(within(sec).getByRole('heading', { level: 4, name: `Year grid for ${year} (descriptive)` })).toBeInTheDocument();
+    expect(sec).toHaveTextContent(/no forecast is made/);
+    expect(sec).toHaveTextContent(/No meanings per number were found, so none are given/);
+  });
+  it('branding fields appear in the printed report only when filled, and are not stored', { timeout: 30000 }, async () => {
+    const user = userEvent.setup();
+    const setItem = vi.spyOn(Storage.prototype, 'setItem');
+    window.print = vi.fn(() => {
+      window.dispatchEvent(new Event('beforeprint'));
+    });
+    const { container } = render(<App />);
+    await user.click(screen.getByText('Report branding (optional)'));
+    await user.type(screen.getByLabelText('Business name'), 'Acme Readings');
+    await user.type(screen.getByLabelText('Prepared by'), 'A. Person');
+    await user.click(screen.getByRole('button', { name: 'Print / Save as PDF' }));
+    expect(container.querySelector('.print-report')!.textContent).toContain('Acme Readings · Prepared by A. Person');
+    expect(setItem).not.toHaveBeenCalled();
+    act(() => {
+      window.dispatchEvent(new Event('afterprint'));
+    });
+    await user.click(screen.getByRole('button', { name: 'Reset' }));
+    expect(screen.getByLabelText('Business name')).toHaveValue('');
+  });
+  it('the print report is rendered from the same blocks as the PDF (same section titles)', async () => {
+    const user = userEvent.setup();
+    window.print = vi.fn(() => {
+      window.dispatchEvent(new Event('beforeprint'));
+    });
+    const { container } = render(<App />);
+    await user.click(screen.getByRole('button', { name: 'Print / Save as PDF' }));
+    const titles = [...container.querySelectorAll('.print-report h2')].map((h) => h.textContent);
+    expect(titles).toEqual(['1. Grid', '2. Calculation audit', '3. The eight lines', '4. Interpretation (rule-based)', '5. Key numbers and how common the pattern is', '6. Optional readings', '7. Evidence and limitations', '8. Sources cited by the rules above']);
+    act(() => {
+      window.dispatchEvent(new Event('afterprint'));
+    });
+  });
+});
+
 describe('Kua in the page', () => {
   it('shows both formulas for the default date and interprets none until a formula is chosen', async () => {
     const user = userEvent.setup();

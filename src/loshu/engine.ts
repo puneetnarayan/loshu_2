@@ -1,4 +1,5 @@
 import type { DerivedKind, Extra, InterpretationRule } from '../data/schema';
+import { relationOf } from './relations';
 import type { Analysis, Digit } from './types';
 
 export interface TriggeredRule {
@@ -66,6 +67,14 @@ export function matchRule(rule: InterpretationRule, a: Analysis, opts: EvalOptio
     const v = derived[c.kind];
     if (v !== c.value) return null;
     why.push(`${KIND_LABEL[c.kind]} is ${v}.`);
+  }
+  for (const c of rule.requiredRelations ?? []) {
+    const f = derived[c.from];
+    const t = derived[c.to];
+    if (f === undefined || t === undefined) return null;
+    const rel = relationOf(f, t);
+    if (rel !== c.relation) return null;
+    why.push(`In the table used, ${KIND_LABEL[c.from]} ${f} → ${KIND_LABEL[c.to]} ${t} is listed as ${rel}.`);
   }
   for (const c of rule.requiredElements ?? []) {
     const row = a.elements.rows.find((r) => r.element === c.element);

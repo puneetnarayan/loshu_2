@@ -145,3 +145,8 @@ summary { cursor: pointer; font-weight: 600; }
 .chip-moderate { background: var(--tint); }
 .extras-opts { display: grid; gap: 6px; margin: 8px 0; }
 .bar { display: inline-block; height: 0.7em; background: var(--accent); border: 1px solid var(--border); vertical-align: middle; min-width: 2px; }
+.brand { margin-top: 10px; border: 1px solid var(--soft-border); border-radius: 6px; padding: 6px 10px; }
+.brand summary { font-weight: 600; }
+
+.lang-switch { display: flex; gap: 8px; margin: 8px 0; }
+.app[lang='zh-Hant'] { font-family: 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', 'Heiti TC', system-ui, sans-serif; }

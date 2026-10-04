@@ -3,6 +3,8 @@ import type { ReactNode } from 'react';
 import { CONFIDENCE_LABELS, EVIDENCE_LABELS, FIDELITY_LABELS } from '../data/schema';
 import type { Confidence } from '../data/schema';
 import type { InterpretationRule } from '../data/schema';
+import { useLang } from '../i18n';
+import { ZH_CONFIDENCE, ZH_EVIDENCE, ZH_FIDELITY } from '../i18n/zh';
 import { resolveSources } from '../lookup';
 import type { Analysis, DigitStat } from '../loshu';
 
@@ -12,11 +14,14 @@ export const STATUS_TEXT = {
   repeated: { symbol: '↻', label: 'Repeated' },
 } as const;
 
+const ZH_STATUS = { missing: '缺少', present: '出現', repeated: '重複' } as const;
+
 export function StatusTag({ status, count }: { status: DigitStat['rawStatus']; count?: number }) {
+  const { tr } = useLang();
   const s = STATUS_TEXT[status];
   return (
     <span className={`status status-${status}`}>
-      <span aria-hidden="true">{s.symbol}</span> {s.label}
+      <span aria-hidden="true">{s.symbol}</span> {tr(s.label, ZH_STATUS[status])}
       {count !== undefined && count > 0 ? ` ×${count}` : ''}
     </span>
   );
@@ -25,9 +30,12 @@ export function StatusTag({ status, count }: { status: DigitStat['rawStatus']; c
 /** Visible warning shown wherever the confidence level is low. Text is plain, never colour-only. */
 export function Rider({ level = 'low', children }: { level?: Confidence; children?: ReactNode }) {
   const c = CONFIDENCE_LABELS[level];
+  const { isZh, tr } = useLang();
+  const z = ZH_CONFIDENCE[level]!;
   return (
     <aside className={`rider rider-${level}`} role="note">
-      <strong>{level === 'moderate' ? 'Note:' : c.short + ':'}</strong> {children ?? c.rider}
+      <strong>{level === 'moderate' ? tr('Note:', '附註：') : (isZh ? z.short : c.short) + tr(':', '：')}</strong>{' '}
+      {isZh && !children ? z.rider : (children ?? c.rider)}
     </aside>
   );
 }
@@ -42,15 +50,18 @@ export function ExternalLink({ href, children }: { href: string; children: React
 
 /** Concise evidence label with an expandable explanation (never a percentage). */
 export function EvidenceLabel({ rule }: { rule: InterpretationRule }) {
+  const { isZh } = useLang();
   const ev = EVIDENCE_LABELS[rule.evidenceClassification];
   const fid = FIDELITY_LABELS[rule.sourceFidelityStatus];
+  const conf = isZh ? ZH_CONFIDENCE[rule.confidence]!.short : CONFIDENCE_LABELS[rule.confidence].short;
   return (
     <details className="evidence">
       <summary>
-        <span className="chip">{ev.short}</span> <span className="chip chip-alt">{fid.short}</span>{' '}
-        <span className={`chip chip-${rule.confidence}`}>{CONFIDENCE_LABELS[rule.confidence].short}</span>
+        <span className="chip">{isZh && rule.evidenceClassification === 'traditional-unvalidated' ? ZH_EVIDENCE : ev.short}</span>{' '}
+        <span className="chip chip-alt">{isZh ? ZH_FIDELITY[rule.sourceFidelityStatus] ?? fid.short : fid.short}</span>{' '}
+        <span className={`chip chip-${rule.confidence}`}>{conf}</span>
       </summary>
-      {rule.confidence !== 'moderate' && <Rider level={rule.confidence}>{rule.confidenceReason}</Rider>}
+      {rule.confidence !== 'moderate' && <Rider level={rule.confidence}>{isZh ? undefined : rule.confidenceReason}</Rider>}
       <p>
         <strong>Scientific evidence:</strong> {ev.explanation}
       </p>
@@ -67,10 +78,11 @@ export function EvidenceLabel({ rule }: { rule: InterpretationRule }) {
   );
 }
 
-export function Derivation({ title = 'How was this derived?', children }: { title?: string; children: ReactNode }) {
+export function Derivation({ title, children }: { title?: string; children: ReactNode }) {
+  const { tr } = useLang();
   return (
     <details className="derive">
-      <summary>{title}</summary>
+      <summary>{title ?? tr('How was this derived?', '如何得出？')}</summary>
       <div className="derive-body">{children}</div>
     </details>
   );
@@ -149,16 +161,17 @@ export function RuleRecord({ rule }: { rule: InterpretationRule }) {
 }
 
 export function VerificationBadge({ analysis, checks }: { analysis: Analysis; checks: Array<{ id: string; description: string; passed: boolean }> }) {
+  const { tr } = useLang();
   const passed = checks.filter((c) => c.passed).length;
   const all = passed === checks.length;
   return (
     <div className={`verify ${all ? 'verify-ok' : 'verify-bad'}`} role="status">
-      <strong>{all ? '✓ Calculation verified' : '✗ Calculation check failed'}</strong>{' '}
+      <strong>{all ? tr('✓ Calculation verified', '✓ 計算已驗證') : tr('✗ Calculation check failed', '✗ 計算檢查失敗')}</strong>{' '}
       <span>
-        ({passed}/{checks.length} arithmetic checks passed for {analysis.dob.normalised})
+        {tr(`(${passed}/${checks.length} arithmetic checks passed for ${analysis.dob.normalised})`, `（${analysis.dob.normalised}：${passed}/${checks.length} 項算術檢查通過）`)}
       </span>
       <details>
-        <summary>What was checked?</summary>
+        <summary>{tr('What was checked?', '檢查了什麼？')}</summary>
         <ul>
           {checks.map((c) => (
             <li key={c.id}>
@@ -167,7 +180,10 @@ export function VerificationBadge({ analysis, checks }: { analysis: Analysis; ch
           ))}
         </ul>
         <p className="muted">
-          This only covers arithmetic. It says nothing about whether the traditional interpretations are accurate; see the evidence labels on each interpretation.
+          {tr(
+            'This only covers arithmetic. It says nothing about whether the traditional interpretations are accurate; see the evidence labels on each interpretation.',
+            '這只涵蓋算術，並不代表傳統解讀是否準確；請參考每個解讀上的證據標示。',
+          )}
         </p>
       </details>
     </div>

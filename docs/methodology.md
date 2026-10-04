@@ -63,3 +63,9 @@ Every rule has `confidence` (`moderate`, `low` or `very-low`; never "high") and 
 - Personal year uses the calendar year of the date the page was opened (`asOf` is injectable for tests).
 - Pattern frequencies live in `src/data/frequencies.ts`, generated from the engine over every calendar date 1900–2025. Regenerate with `GEN_FREQ=1 npx vitest run tests/genFrequencies.test.ts`; a test fails if the committed file differs from a fresh computation.
 - Rules are in `src/data/rules.ts` (core) and `src/data/extraRules.ts`; both are merged in `src/data/catalogue.ts`.
+
+## Later additions
+
+- **Optional readings** are now: planetary profile, five elements, Kua, Driver–Destiny relation, remedies, gemstones (off by default), personal-year cycle (with personal months and a descriptive year grid) and name numbers. Each has a section-level rider and rule-level confidence.
+- **Report model:** `src/report/blocks.ts` builds one neutral block list. The PDF writer (`src/pdf/renderPdf.ts`) and the print view (`src/components/PrintReport.tsx`) both render it, so they cannot drift apart. Optional branding lines (business, operator, contact) are added at the top.
+- **Languages:** `src/i18n/` holds a small language context. English strings are the source of truth; Traditional Chinese covers the interface, Help and the Basic reading through explicit text tables (`src/i18n/zh.ts`). Rule texts outside Basic stay English by design.

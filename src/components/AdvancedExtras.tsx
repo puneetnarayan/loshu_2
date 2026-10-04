@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { DIGIT_PLANETS, LINE_NAMES } from '../data/rules';
 import { FREQUENCY_RANGE, patternFrequencies } from '../lookup';
-import { analyse, compareAnalyses, ELEMENT_DIGITS, KUA_GROUP_DIRECTIONS, kuaGroup, kuaSteps, lineLabel, parseDob, planetProfile } from '../loshu';
+import { analyse, compareAnalyses, ELEMENT_DIGITS, KUA_GROUP_DIRECTIONS, kuaGroup, kuaSteps, lineLabel, parseDob, personalMonths, planetProfile, RELATION_TABLE, yearGrid } from '../loshu';
 import type { Digit, Report } from '../loshu';
 import { EvidenceLabel, RuleDerivation, Rider, Section, StatusTag, TableWrap } from './shared';
 
@@ -24,7 +24,7 @@ function RuleBlocks({ items }: { items: Report['triggered'] }) {
 
 const by = (report: Report, ...cats: string[]) => report.triggered.filter((t) => cats.includes(t.rule.category));
 
-export function KeyNumbersSection({ report }: { report: Report }) {
+export function KeyNumbersSection({ report, showRelations = false }: { report: Report; showRelations?: boolean }) {
   const a = report.analysis;
   return (
     <Section title="Driver and Destiny readings">
@@ -36,6 +36,16 @@ export function KeyNumbersSection({ report }: { report: Report }) {
         One-line meanings come from a single search summary of several guides and are paraphrased. Destiny wording for 6 and 7 was not visible and extends the Lo Shu keywords. Friend/enemy compatibility tables for Driver and Destiny exist but only part of one was visible and sources differ, so no compatibility verdict is made.
       </Rider>
       <RuleBlocks items={by(report, 'driver', 'destiny')} />
+      {showRelations && (
+        <>
+          <h4>Driver and Destiny relation (optional)</h4>
+          <Rider level="very-low">
+            Friend/neutral/enemy tables disagree between sources (a second table seen only for rows 1–4 gives different answers), and the table used here is internally inconsistent: row 8 lists 4 as both friendly and enemy, which is reported as a conflict. The page it came from was not opened. No verdict about you or about any relationship is made.
+          </Rider>
+          <p className="muted small">Row for Driver {report.analysis.driver.value} in the table used: friendly {RELATION_TABLE[report.analysis.driver.value].friendly.join(', ') || '—'}; neutral {RELATION_TABLE[report.analysis.driver.value].neutral.join(', ') || '—'}; unfriendly {RELATION_TABLE[report.analysis.driver.value].enemy.join(', ') || '—'}.</p>
+          <RuleBlocks items={by(report, 'relation')} />
+        </>
+      )}
     </Section>
   );
 }
@@ -147,7 +157,7 @@ export function ElementSection({ report }: { report: Report }) {
 
 export function RemedySection({ report }: { report: Report }) {
   const a = report.analysis;
-  const rem = by(report, 'remedy');
+  const rem = by(report, 'remedy').filter((t) => t.rule.subcategory !== 'gemstone');
   const uncovered = a.effective.repeated.filter((d) => !rem.some((t) => t.rule.id === `REM-${d}-REPEATED`));
   return (
     <Section title="Reported remedies (optional)">
@@ -157,6 +167,17 @@ export function RemedySection({ report }: { report: Report }) {
       <RuleBlocks items={rem} />
       {uncovered.length > 0 && <p className="muted">No remedy was documented for repeated {uncovered.join(', ')}.</p>}
       <p className="muted small">Do not use remedies in place of medical, financial or legal advice.</p>
+    </Section>
+  );
+}
+
+export function GemstoneSection({ report }: { report: Report }) {
+  return (
+    <Section title="Gemstones reported for the Driver number (optional)">
+      <Rider level="very-low">
+        Gemstone pairings come from search summaries of mostly jewellery retailers, who profit from sales. Sources vary for 6, 7 and 9, there is no evidence that wearing any stone has an effect, and stones can be very costly (and are often treated or synthetic). Do not buy a stone because of this. No wearing or purchase advice is given.
+      </Rider>
+      <RuleBlocks items={by(report, 'remedy').filter((t) => t.rule.subcategory === 'gemstone')} />
     </Section>
   );
 }
@@ -172,6 +193,19 @@ export function CycleSection({ report }: { report: Report }) {
         Personal Year for {c.year}: <strong>{c.personalYear.value}</strong> ({c.personalYear.steps.join(' → ')}). Calendar-year convention; as of the date this page was opened.
       </p>
       <RuleBlocks items={by(report, 'cycle')} />
+      <h4>Personal month numbers for {c.year}</h4>
+      <Rider level="very-low">Formula (personal year + calendar month, reduced) agrees across summaries and a worked example is reproduced by a test. No meanings per number were found, so none are given.</Rider>
+      <TableWrap>
+        <table className="table">
+          <thead><tr><th scope="col">Month</th><th scope="col">Personal month</th><th scope="col">Working</th></tr></thead>
+          <tbody>
+            {personalMonths(c.personalYear).map((m) => (
+              <tr key={m.month}><th scope="row">{m.month}</th><td>{m.value}</td><td>{m.steps.join(' → ')}</td></tr>
+            ))}
+          </tbody>
+        </table>
+      </TableWrap>
+      <YearGridBlock report={report} />
     </Section>
   );
 }
@@ -288,5 +322,27 @@ export function KuaSection({ report }: { report: Report }) {
       {report.kuaFormula !== 'both' && k.boundary === 'uncertain' && <p className="muted">The reading is withheld because the date falls on 3–5 February; both candidates are shown above.</p>}
       <RuleBlocks items={by(report, 'kua')} />
     </Section>
+  );
+}
+
+function YearGridBlock({ report }: { report: Report }) {
+  const yg = yearGrid(report.analysis, report.cycle.year);
+  const names = (ids: string[]) => ids.map((id) => id.slice(2).split('').join('–')).join(', ') || 'none';
+  return (
+    <>
+      <h4>Year grid for {yg.year} (descriptive)</h4>
+      <Rider level="very-low">
+        The yearly grid method is described only vaguely in one search summary (birth date digits combined with the digits of the year, then arrows and numbers read for predictions). Only the arithmetic is shown; no forecast is made, and the exact placement rules were not verified.
+      </Rider>
+      <p>
+        Adds the digits {yg.addedDigits.join(', ') || 'none'} to the raw date digits. Newly complete lines: {names(yg.newlyComplete)}. Newly non-empty lines: {names(yg.newlyNonEmpty)}.
+      </p>
+      <TableWrap>
+        <table className="table">
+          <thead><tr><th scope="col">Line</th><th scope="col">Birth grid</th><th scope="col">With year digits</th></tr></thead>
+          <tbody>{yg.lines.map((l) => <tr key={l.id}><th scope="row">{l.label}</th><td>{l.before}</td><td>{l.after}</td></tr>)}</tbody>
+        </table>
+      </TableWrap>
+    </>
   );
 }

@@ -40,11 +40,21 @@ export type Category =
   | 'remedy'
   | 'cycle'
   | 'name'
-  | 'kua';
+  | 'kua'
+  | 'relation';
 
 /** Optional readings that can be switched on and off. */
-export type Extra = 'planetary' | 'remedies' | 'elements' | 'cycle' | 'name' | 'kua';
-export const EXTRAS: readonly Extra[] = ['planetary', 'elements', 'kua', 'remedies', 'cycle', 'name'];
+export type Extra = 'planetary' | 'remedies' | 'gemstones' | 'elements' | 'cycle' | 'name' | 'kua' | 'relations';
+export const EXTRAS: readonly Extra[] = ['planetary', 'elements', 'kua', 'relations', 'remedies', 'gemstones', 'cycle', 'name'];
+/** Extras switched on when the page first opens. Gemstones start off (commercial sources, cost, no evidence). */
+export const DEFAULT_EXTRAS: readonly Extra[] = EXTRAS.filter((e) => e !== 'gemstones');
+
+export type Relation = 'friendly' | 'neutral' | 'enemy' | 'conflicting';
+export interface RelationCondition {
+  from: 'driver' | 'destiny';
+  to: 'driver' | 'destiny';
+  relation: Relation;
+}
 
 export type Element = 'water' | 'earth' | 'wood' | 'metal' | 'fire';
 export type DerivedKind = 'driver' | 'destiny' | 'expression' | 'soul-urge' | 'personality' | 'personal-year' | 'kua';
@@ -111,6 +121,7 @@ export interface InterpretationRule {
   requiredLines: LineCondition[];
   requiredDerived?: DerivedCondition[];
   requiredElements?: ElementCondition[];
+  requiredRelations?: RelationCondition[];
   calculationMethod: string;
   calculationExplanation: string;
   basicText: string;

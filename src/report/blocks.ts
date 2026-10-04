@@ -3,7 +3,7 @@ import type { Extra } from '../data/schema';
 import { DIGIT_PLANETS, LINE_NAMES } from '../data/rules';
 import { getSource } from '../data/sources';
 import { FREQUENCY_RANGE, patternFrequencies } from '../lookup';
-import { analyse, compareAnalyses, GRID_LAYOUT, KUA_GROUP_DIRECTIONS, kuaGroup, kuaSteps, lineLabel, parseDob, planetProfile } from '../loshu';
+import { analyse, compareAnalyses, GRID_LAYOUT, KUA_GROUP_DIRECTIONS, kuaGroup, kuaSteps, lineLabel, parseDob, personalMonths, planetProfile, yearGrid } from '../loshu';
 import type { Report } from '../loshu';
 
 /** A neutral, renderer-independent description of the report (used by the PDF writer). */
@@ -14,8 +14,15 @@ export type Block =
   | { t: 'table'; caption?: string; head?: string[]; rows: string[][] }
   | { t: 'grid'; caption: string; cells: Array<Array<{ digit: number; line1: string; line2: string }>> };
 
+export interface Brand {
+  business: string;
+  contact: string;
+  operator: string;
+}
+
 export interface BlockOptions {
   name: string;
+  brand?: Brand;
   extras: readonly Extra[];
   compareText: string;
   generated: string;
@@ -28,6 +35,8 @@ const RIDERS: Record<Extra, string> = {
   planetary: 'Low confidence: the digit-to-planet mapping was confirmed by several search summaries (Indian scheme); the planet themes are general keywords, partly from background knowledge, and not verified.',
   elements: 'Low confidence: the element of each number comes from Feng Shui / Nine Star Ki, a different tradition from Indian Lo Shu numerology; the element themes were not verified.',
   kua: 'Low confidence: Kua is Feng Shui (Eight Mansions), a different tradition from the Lo Shu grid, and never changes the grid. Sources differ on the year boundary (Li Chun versus Chinese New Year); on 3-5 February the exact moment of Li Chun decides. Per-direction meanings were not visible and are not used.',
+  relations: 'Very low confidence: friend/neutral/enemy tables disagree between sources, and the table used is internally inconsistent (row 8 lists 4 as both friendly and enemy). The page it came from was not opened. No verdict about people is made.',
+  gemstones: 'Very low confidence: gemstone pairings come from search summaries of mostly jewellery retailers, who profit from sales; sources vary for 6, 7 and 9; there is no evidence that wearing any stone has an effect; stones can be costly. Do not buy a stone because of this.',
   remedies: 'Low confidence: remedies come from search summaries of commercial guides. No evidence that any traditional remedy changes anything; none is promised. Gemstone advice is omitted. Do not use remedies in place of professional advice.',
   cycle: 'Very low confidence: forecast-style reading from Western numerology, not Lo Shu tradition; generic, unvalidated meanings; no source text was read.',
   name: 'Very low confidence: a separate Pythagorean system; schools differ on Y, master numbers and which name to use; the readings reuse the Lo Shu keywords for each digit. The name never changes the grid.',
@@ -52,6 +61,11 @@ export function reportBlocks(report: Report, o: BlockOptions): Block[] {
   const b: Block[] = [];
 
   b.push({ t: 'h1', text: 'Lo Shu Grid report' });
+  const brand = o.brand;
+  if (brand && (brand.business.trim() || brand.contact.trim() || brand.operator.trim())) {
+    const parts = [brand.business.trim(), brand.operator.trim() ? `Prepared by ${brand.operator.trim()}` : '', brand.contact.trim()].filter(Boolean);
+    b.push({ t: 'p', text: parts.join(' · ') });
+  }
   b.push({ t: 'p', text: `${o.name.trim() ? `Prepared for ${o.name.trim()} · ` : ''}Date of birth ${a.dob.normalised} · Mode: ${a.mode.label} · Generated ${o.generated}` });
   b.push({ t: 'p', style: 'note', text: 'Calculated locally in the browser. The name and date are not stored or transmitted. Traditional readings are not scientifically validated and are not advice.' });
 
@@ -113,6 +127,11 @@ export function reportBlocks(report: Report, o: BlockOptions): Block[] {
   b.push({ t: 'h2', text: '5. Key numbers and how common the pattern is' });
   b.push({ t: 'p', style: 'note', text: 'Low confidence: Driver and Destiny meanings come from one search summary of several guides; no compatibility verdict is made.' });
   b.push(rules(cat('driver', 'destiny')));
+  if (o.extras.includes('relations')) {
+    b.push({ t: 'h3', text: 'Driver and Destiny relation (very low confidence)' });
+    b.push({ t: 'p', style: 'note', text: RIDERS.relations });
+    b.push(rules(cat('relation')));
+  }
   b.push({ t: 'p', text: `Share of all ${FREQUENCY_RANGE.dates.toLocaleString('en-GB')} calendar dates from ${FREQUENCY_RANGE.from} to ${FREQUENCY_RANGE.to} (not population-weighted) showing the same pattern in this mode. A common pattern is not special and a rare one is not meaningful in itself.` });
   b.push({ t: 'table', rows: patternFrequencies(a).map((i) => [i.label, `${i.percent.toFixed(2)}%`]) });
 
@@ -147,13 +166,23 @@ export function reportBlocks(report: Report, o: BlockOptions): Block[] {
   if (o.extras.includes('remedies')) {
     b.push({ t: 'h3', text: 'Reported remedies (low confidence)' });
     b.push({ t: 'p', style: 'note', text: RIDERS.remedies });
-    b.push(rules(cat('remedy')));
+    b.push(rules(cat('remedy').filter((t) => t.rule.subcategory !== 'gemstone')));
+  }
+  if (o.extras.includes('gemstones')) {
+    b.push({ t: 'h3', text: 'Gemstones reported for the Driver number (very low confidence)' });
+    b.push({ t: 'p', style: 'note', text: RIDERS.gemstones });
+    b.push(rules(cat('remedy').filter((t) => t.rule.subcategory === 'gemstone')));
   }
   if (o.extras.includes('cycle')) {
     b.push({ t: 'h3', text: 'Personal year cycle (very low confidence)' });
     b.push({ t: 'p', style: 'note', text: RIDERS.cycle });
     b.push({ t: 'p', text: `Personal Year for ${report.cycle.year}: ${report.cycle.personalYear.value} (${report.cycle.personalYear.steps.join(' → ')}).` });
     b.push(rules(cat('cycle')));
+    b.push({ t: 'p', style: 'note', text: 'Very low confidence: personal month = personal year + calendar month, reduced (formula agrees across summaries); no meanings per number were found, so none are given.' });
+    b.push({ t: 'table', head: ['Month', 'Personal month', 'Working'], rows: personalMonths(report.cycle.personalYear).map((m) => [String(m.month), String(m.value), m.steps.join(' → ')]) });
+    const yg = yearGrid(report.analysis, report.cycle.year);
+    b.push({ t: 'p', style: 'note', text: 'Very low confidence: the yearly grid method is described only vaguely in one search summary (birth date digits combined with the digits of the year). This is descriptive arithmetic; no forecast is made.' });
+    b.push({ t: 'p', text: `Year grid ${yg.year}: adds the digits ${yg.addedDigits.join(', ') || 'none'} to the raw date digits. Newly complete lines: ${yg.newlyComplete.length ? yg.newlyComplete.map((id) => id.slice(2).split('').join('–')).join(', ') : 'none'}. Newly non-empty lines: ${yg.newlyNonEmpty.length ? yg.newlyNonEmpty.map((id) => id.slice(2).split('').join('–')).join(', ') : 'none'}.` });
   }
   if (o.extras.includes('name') && report.nameNumbers) {
     const n = report.nameNumbers;

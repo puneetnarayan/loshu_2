@@ -432,4 +432,73 @@ const kuaRules: InterpretationRule[] = ([1, 2, 3, 4, 6, 7, 8, 9] as Digit[]).map
   }, 'kua');
 });
 
-export const EXTRA_RULES: readonly InterpretationRule[] = [...partial, ...derived, ...planetProfile, ...elements, ...kuaRules, ...remedies, ...cycle, ...names];
+// ---------- 9. Gemstones reported for the Driver number (separate switch, off by default) ----------
+const GEM: Record<Digit, { stone: string; note: string; fidelity: SourceFidelity; sources: string[] }> = {
+  1: { stone: 'ruby', note: 'linked with the Sun', fidelity: 'unverified-search-summary', sources: ['SRC-GEM-NAVRATAN', 'SRC-GEM-BRAHMA'] },
+  2: { stone: 'pearl', note: 'linked with the Moon', fidelity: 'unverified-search-summary', sources: ['SRC-GEM-BRAHMA', 'SRC-GEM-9GEM'] },
+  3: { stone: 'yellow sapphire', note: 'linked with Jupiter', fidelity: 'unverified-search-summary', sources: ['SRC-GEM-NAVRATAN', 'SRC-GEM-BRAHMA'] },
+  4: { stone: 'hessonite (gomed)', note: 'linked with Rahu', fidelity: 'unverified-search-summary', sources: ['SRC-GEM-NAVRATAN', 'SRC-GEM-9GEM'] },
+  5: { stone: 'emerald', note: 'linked with Mercury', fidelity: 'unverified-search-summary', sources: ['SRC-GEM-BRAHMA', 'SRC-GEM-9GEM'] },
+  6: { stone: 'diamond', note: 'linked with Venus; sources vary for 6', fidelity: 'sources-disagree', sources: ['SRC-GEM-INDIACOM', 'SRC-GEM-9GEM'] },
+  7: { stone: 'cat’s eye', note: 'linked with Ketu; sources vary for 7', fidelity: 'sources-disagree', sources: ['SRC-GEM-INDIACOM', 'SRC-GEM-9GEM'] },
+  8: { stone: 'blue sapphire (neelam)', note: 'linked with Saturn', fidelity: 'unverified-search-summary', sources: ['SRC-GEM-BRAHMA', 'SRC-GEM-9GEM'] },
+  9: { stone: 'red coral', note: 'linked with Mars; the 9 pairing was not visible in the search summaries and comes from the nine-gem (navaratna) list', fidelity: 'insufficient-documentation', sources: ['SRC-GEM-INDIACOM', 'SRC-GEM-9GEM'] },
+};
+const gems: InterpretationRule[] = DIGITS.map((d) => {
+  const g = GEM[d];
+  return mk({
+    id: `GEM-${d}`,
+    title: `Gemstone reported for Driver ${d}`,
+    category: 'remedy',
+    subcategory: 'gemstone',
+    sourceIds: g.sources,
+    sourceFidelityStatus: g.fidelity,
+    confidence: 'very-low',
+    confidenceReason:
+      'Gemstone pairings were reported by search summaries of mostly jewellery retailers, who profit from sales. Sources vary for 6, 7 and 9, there is no evidence that wearing any stone has an effect, and stones can be very costly (and are often treated or synthetic).',
+    ruleDescription: `Some guides name ${g.stone} (${g.note}) as the lucky stone for Driver ${d}.`,
+    triggerConditions: `Driver = ${d} and gemstones option enabled`,
+    requiredDerived: [{ kind: 'driver', value: d }],
+    calculationExplanation: 'Driver is the reduced day of birth; the pairing is a lookup, not a calculation.',
+    basicText: `Some guides name ${g.stone} for Driver ${d}.`,
+    advancedText: `Driver ${d} → ${g.stone} (${g.note}). Reported mainly by gem retailers. No evidence it has any effect; do not buy a stone because of this, and compare costs and authenticity independently if you ever do.`,
+    knownDisagreements: ['Pairings differ between sources for 6, 7 and 9; many guides also add colours, metals, wearing days and fingers that are not reproduced here.'],
+    exclusions: ['No purchase, wearing or dosage advice is given.', 'Not a substitute for professional advice of any kind.'],
+    reflectionSuggestion: 'If a symbol helps you stay focused on a habit, any small object can do the same at no cost.',
+    summaryPhrase: `reported gemstone for Driver ${d}`,
+  }, 'gemstones');
+});
+
+// ---------- 10. Driver / Destiny relationship (one inconsistent table; very low confidence) ----------
+const REL_TEXT = {
+  friendly: 'In one published table, your Destiny number is listed among the numbers friendly to your Driver number. The tradition reads this as everyday personality and life direction pulling the same way.',
+  neutral: 'In one published table, your Destiny number is listed as neutral to your Driver number. The tradition reads this as neither support nor tension between everyday personality and life direction.',
+  enemy: 'In one published table, your Destiny number is listed among the numbers unfriendly to your Driver number. The tradition reads this as some tension between everyday personality and life direction. It is not a verdict: other tables disagree.',
+  conflicting: 'The table used lists this Driver–Destiny pair in more than one column (for example both friendly and unfriendly), so no relation is claimed.',
+} as const;
+const relations: InterpretationRule[] = (['friendly', 'neutral', 'enemy', 'conflicting'] as const).map((rel) =>
+  mk({
+    id: `REL-${rel.toUpperCase()}`,
+    title: `Driver → Destiny: ${rel}`,
+    category: 'relation',
+    subcategory: rel,
+    sourceIds: ['SRC-REL-NUMERICWISDOM', 'SRC-SWARNSIDDHI-DC'],
+    sourceFidelityStatus: 'sources-disagree',
+    sourceAgreement: 'disputed',
+    confidence: 'very-low',
+    confidenceReason:
+      'Friend/neutral/enemy tables disagree between sources (another table seen only for rows 1–4 gives different answers) and the table used is internally inconsistent (row 8 lists 4 as both friendly and enemy). The page it came from was not opened.',
+    ruleDescription: `The Destiny number is ${rel === 'conflicting' ? 'listed in more than one column' : `listed as ${rel}`} in the row of the Driver number.`,
+    triggerConditions: `Table lookup: Driver → Destiny is ${rel} and the relations option is enabled`,
+    requiredRelations: [{ from: 'driver', to: 'destiny', relation: rel }],
+    calculationExplanation: 'Look up the Destiny number in the Driver number’s row of the table (rows are read number to other number; the table is not symmetric).',
+    basicText: REL_TEXT[rel],
+    advancedText: `${REL_TEXT[rel]} Table rows are directional and not symmetric.`,
+    knownDisagreements: ['A second table (rows 1–4 only) lists, for example, 4, 6, 7 and 8 as enemies of 1, where this table lists only 8.', 'Row 8 of the table used lists 4 as both friendly and enemy.'],
+    exclusions: ['No compatibility verdict about people is made, and nothing here concerns relationships between two people.'],
+    reflectionSuggestion: 'Treat this only as a prompt to notice whether your everyday habits and long-term aims feel aligned.',
+    summaryPhrase: `Driver–Destiny relation: ${rel}`,
+  }, 'relations'),
+);
+
+export const EXTRA_RULES: readonly InterpretationRule[] = [...partial, ...derived, ...planetProfile, ...elements, ...kuaRules, ...remedies, ...gems, ...relations, ...cycle, ...names];

@@ -45,7 +45,7 @@ export function validateCatalogue(rules: readonly InterpretationRule[], sources:
     for (const l of r.requiredLines) if (!lineIds.has(l.lineId)) errors.push(`${r.id}: unknown line ${l.lineId}`);
     if (!['moderate', 'low', 'very-low'].includes(r.confidence)) errors.push(`${r.id}: confidence must be moderate, low or very-low (traditional readings are never rated high)`);
     if (r.sourceFidelityStatus !== 'multiple-summaries-agree' && r.confidence === 'moderate') errors.push(`${r.id}: moderate confidence needs multiple-summaries-agree`);
-    if (r.requiredDigits.length + r.requiredCounts.length + r.requiredLines.length + (r.requiredDerived?.length ?? 0) + (r.requiredElements?.length ?? 0) === 0) {
+    if (r.requiredDigits.length + r.requiredCounts.length + r.requiredLines.length + (r.requiredDerived?.length ?? 0) + (r.requiredElements?.length ?? 0) + (r.requiredRelations?.length ?? 0) === 0) {
       errors.push(`${r.id}: has no structured trigger condition`);
     }
     if (!Array.isArray(r.knownDisagreements) || !Array.isArray(r.exclusions) || !Array.isArray(r.limitations)) {

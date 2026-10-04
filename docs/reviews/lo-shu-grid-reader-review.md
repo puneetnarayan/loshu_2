@@ -28,12 +28,16 @@
 | Direct PDF download | `src/pdf/renderPdf.ts` using `pdf-lib`, loaded only on demand. Fixed neutral file name `lo-shu-report.pdf`, neutral metadata (no author), A4, riders printed. A print route remains for names with characters the standard PDF fonts cannot show. |
 | Kua group directions | Group level only (East: N, S, E, SE; West: W, NW, SW, NE), confirmed by several search summaries. Per-direction meanings are **not** used (finding 9). |
 
-## Not ported (needs your decision)
+## Added later
 
-- **Traditional Chinese (zh-TW) interface and report.** Requires reviewed translations and an embedded CJK font; translation accuracy cannot be verified here.
-- **Business branding on reports** (company name, contact details, operator). Not requested for this app.
+- **Traditional Chinese interface and Basic reading**, with an unreviewed-translation notice (Advanced and the PDF stay English; see `docs/research/research-log.md`, fifth pass).
+- **Business branding** lines on the PDF and printed report.
+
+## Still not ported
+
 - **Predictive and wealth/fame wording.** Deliberately left out (finding 5).
 - **Desktop packaging (Tauri).** This project is a web app.
+- **A Chinese PDF.** Needs an embedded CJK font and reviewed text; the print route already prints Chinese names.
 
 ## Suggested fixes for the reviewed project itself
 

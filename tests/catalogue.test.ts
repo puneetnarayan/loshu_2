@@ -24,11 +24,12 @@ describe('source and rule validation', () => {
     expect(n('destiny')).toBe(9);
     expect(n('planet-profile')).toBe(18);
     expect(n('element')).toBe(10);
-    expect(n('remedy')).toBe(12); // 9 missing + repeated 1, 4, 5
+    expect(n('remedy')).toBe(21); // 9 missing + repeated 1, 4, 5 + 9 gemstones
+    expect(n('relation')).toBe(4);
     expect(n('cycle')).toBe(9);
     expect(n('name')).toBe(27);
     expect(n('kua')).toBe(8);
-    expect(RULES).toHaveLength(188);
+    expect(RULES).toHaveLength(201);
     expect(new Set(RULES.map((r) => r.id)).size).toBe(RULES.length);
   });
   it('covers every digit with present/missing/repeated and every line with complete/empty', () => {

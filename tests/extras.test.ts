@@ -175,8 +175,8 @@ describe('confidence riders', () => {
     expect(new Set(level('name'))).toEqual(new Set(['very-low']));
     for (const c of ['remedy', 'element', 'planet-profile', 'partial-line', 'driver', 'destiny']) expect(level(c)).not.toContain('moderate');
   });
-  it('remedy text promises nothing and omits gemstones', () => {
-    for (const r of RULES.filter((x) => x.category === 'remedy')) {
+  it('remedy text promises nothing and omits gemstones (gemstones are a separate, heavily flagged switch)', () => {
+    for (const r of RULES.filter((x) => x.category === 'remedy' && x.subcategory !== 'gemstone')) {
       expect(r.advancedText).not.toMatch(/guarantee|will (bring|cure|fix|change)|buy|purchase|wear (a |an )?(ruby|emerald|sapphire|pearl|gemstone|stone)/i);
       expect(r.advancedText).toMatch(/No outcome is promised/);
       expect(r.exclusions.join(' ')).toMatch(/Gemstone/);

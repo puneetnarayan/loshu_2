@@ -131,3 +131,20 @@ Prompted by a review of a supplied project (see `docs/reviews/lo-shu-grid-reader
 - **Directions:** East group (Kua 1, 3, 4, 9): North, South, East, Southeast. West group (2, 6, 7, 8): West, Northwest, Southwest, Northeast. The four named directions per Kua (Sheng Qi, Tian Yi, Yan Nian, Fu Wei) were referenced but not visible, so they are **not used**.
 - **Number-pool rule** (Destiny always; Driver unless the day is 1–9, 10, 20 or 30): appears in one search summary and in the supplied app; other guides add the Driver in every case. Offered as a separate low-confidence overlay mode.
 - Kua is still **not added to the date-of-birth grid**: no source describing that was verified.
+
+---
+
+## Fifth pass: the items deferred earlier, now built with flags
+
+Requested as "go ahead with all stuff with flags". Same method (search summaries only, no page opened). Each item carries a confidence level and a visible rider; where the evidence could not support an interpretation, only arithmetic is shown.
+
+| Item | What was found | Built as | Confidence |
+|---|---|---|---|
+| **Gemstones** (Driver) | Ruby 1, pearl 2, yellow sapphire 3, hessonite 4, emerald 5, blue sapphire 8 appear in summaries; sources vary for 6 (diamond) and 7 (cat's eye); 9 (red coral) was not visible and comes from the nine-gem list. **The sources are mostly jewellery retailers**, who profit from sales. | Separate switch, **off by default**. Lookup by Driver number only, with a warning about retail sources, cost, treated or synthetic stones and no evidence of any effect. No wearing or purchase advice. 6 and 7 are marked `sources-disagree`, 9 `insufficient-documentation`. | Very low |
+| **Driver–Destiny relation** | A full friendly/neutral/enemy table appeared in one summary, but it **contradicts** an earlier partial table (for example 1's enemies) and is **internally inconsistent** (row 8 lists 4 as both friendly and enemy). | One table, direction-aware, in the optional "relations" reading. The contradictory pair (8 → 4) is reported as `conflicting` with no relation claimed. No verdict about people. | Very low |
+| **Personal month** | Formula agrees (personal year + calendar month, reduced); a worked example (born June, April 2026 gives 6) is reproduced by a test. **No meanings per number were found.** | Numbers only for the 12 months, no interpretation text. | Very low |
+| **Year grid** | A commercial report says the yearly grid combines the birth digits with the year's digits and then reads arrows for "predictions"; the placement method was not visible. | Descriptive arithmetic only (which lines gain digits). **No forecast.** | Very low |
+| **Branding** | — | Optional business, operator and contact lines at the top of the PDF and printed report; not stored; not in the file name. | n/a |
+| **Traditional Chinese** | — | Interface, Help, glossary and the whole Basic reading (every Basic rule has a translation; a test enforces it and guards against Simplified-only characters). The date-error messages are translated. **Advanced, the PDF and the "How was this derived?" details stay English**, with a notice in Chinese. **Translations were written by an AI assistant and have not been reviewed by a native speaker.** | Unreviewed |
+
+Not built, and why: per-month meanings (none found); a forecast from the year grid (method unverified); a compatibility verdict between two people (tables disagree); a Chinese PDF (needs an embedded CJK font and reviewed text; the print route can already print Chinese names).
