@@ -1,7 +1,5 @@
 import { DIGIT_KEYWORDS } from '../data/rules';
 import { GRID_LAYOUT, positionLabel, POSITIONS } from '../loshu';
-import { useLang, useRuleText, ZH_POSITION } from '../i18n';
-import { ZH_DIGIT } from '../i18n/zh';
 import type { Analysis, Digit, DigitStat } from '../loshu';
 import type { TriggeredRule } from '../loshu';
 import { Derivation, EvidenceLabel, StatusTag } from './shared';
@@ -46,12 +44,11 @@ interface Props {
 }
 
 export function GridView({ analysis, selected, onSelect, variant, layer = 'raw', orientation = 'modern', triggered = [] }: Props) {
-  const { tr, isZh } = useLang();
   const effectiveLayer: GridLayer = variant === 'basic' ? 'raw' : layer;
   return (
     <div className="grid-wrap">
       <p className={`layer-label layer-${effectiveLayer}`} role="note">
-        {tr('Showing: ', '顯示：')}<strong>{isZh && effectiveLayer === 'raw' ? '原始出生日期層：只計算出生日期中的非零數字' : LAYER_TEXT[effectiveLayer]}</strong>
+        Showing:{' '}<strong>{LAYER_TEXT[effectiveLayer]}</strong>
       </p>
       <div
         className="lo-grid"
@@ -68,11 +65,8 @@ export function GridView({ analysis, selected, onSelect, variant, layer = 'raw',
           const status = statusFor(count);
           const ruleCount = triggered.filter((t) => t.rule.requiredDigits.includes(digit) || t.rule.requiredCounts.some((c) => c.digit === digit)).length;
           const label = !stat
-            ? tr(`Number ${digit}. Enter a date of birth to see its count.`, `數字 ${digit}。輸入出生日期即可看到次數。`)
-            : tr(
-                `Number ${digit}, ${displayPosition(digit, orientation)}. Appears ${count} ${count === 1 ? 'time' : 'times'}. ${status}.`,
-                `數字 ${digit}，${ZH_POSITION[displayPosition(digit, orientation)] ?? ''}。出現 ${count} 次。${({ missing: '缺少', present: '出現', repeated: '重複' } as const)[status]}。`,
-              );
+            ? `Number ${digit}. Enter a date of birth to see its count.`
+            : `Number ${digit}, ${displayPosition(digit, orientation)}. Appears ${count} ${count === 1 ? 'time' : 'times'}. ${status}.`;
           return (
             <button
               type="button"
@@ -91,7 +85,7 @@ export function GridView({ analysis, selected, onSelect, variant, layer = 'raw',
                   </span>
                   <StatusTag status={status} count={count} />
                   {variant === 'basic' ? (
-                    <span className="cell-note">{isZh ? ZH_DIGIT[digit].kw : DIGIT_KEYWORDS[digit]}</span>
+                    <span className="cell-note">{DIGIT_KEYWORDS[digit]}</span>
                   ) : (
                     <span className="cell-note">
                       raw {stat.rawCount} + overlay {stat.overlayCount} = {stat.combinedCount}
@@ -101,14 +95,14 @@ export function GridView({ analysis, selected, onSelect, variant, layer = 'raw',
                   )}
                 </>
               ) : (
-                <span className="cell-note">{isZh ? ZH_DIGIT[digit].kw : DIGIT_KEYWORDS[digit]}</span>
+                <span className="cell-note">{DIGIT_KEYWORDS[digit]}</span>
               )}
             </button>
           );
         })}
       </div>
       <p className="muted small">
-        {isZh ? '數字永遠不會移動：4 9 2 / 3 5 7 / 8 1 6。方陣中每一行、每一列和每條對角線的和都是 15。' : orientation === 'historical'
+        {orientation === 'historical'
           ? 'Historical mirror view (2 9 4 / 7 5 3 / 6 1 8): only the drawing is mirrored. Counts, lines and results are identical to the modern layout.'
           : 'The digits never move: 4 9 2 / 3 5 7 / 8 1 6. Every row, column and diagonal of the square adds up to 15.'}
       </p>
@@ -117,12 +111,10 @@ export function GridView({ analysis, selected, onSelect, variant, layer = 'raw',
 }
 
 export function CellDetail({ digit, analysis, triggered, variant, orientation = 'modern' }: { digit: Digit | null; analysis: Analysis | null; triggered: TriggeredRule[]; variant: 'basic' | 'advanced'; orientation?: Orientation }) {
-  const { tr, isZh } = useLang();
-  const text = useRuleText();
   if (digit === null || !analysis) {
     return (
       <div className="cell-detail" aria-live="polite">
-        <p className="muted">{tr('Select a number in the grid to see what it means and how it was counted.', '選擇九宮格中的一個數字，查看它的意義與計算方式。')}</p>
+        <p className="muted">Select a number in the grid to see what it means and how it was counted.</p>
       </div>
     );
   }
@@ -133,7 +125,7 @@ export function CellDetail({ digit, analysis, triggered, variant, orientation = 
   return (
     <div className="cell-detail" aria-live="polite">
       <h4>
-        {tr('Number ', '數字 ')}{digit} · {isZh ? ZH_POSITION[displayPosition(digit, orientation)] : displayPosition(digit, orientation)}
+        Number{' '}{digit} · {displayPosition(digit, orientation)}
       </h4>
       <p>
         <StatusTag status={statusFor(count)} count={count} />{' '}
@@ -142,11 +134,11 @@ export function CellDetail({ digit, analysis, triggered, variant, orientation = 
         )}
       </p>
       {shown.length === 0 ? (
-        <p>{tr('No documented rule applies to this number in the current view.', '在目前的檢視中，沒有已記載的規則適用於此數字。')}</p>
+        <p>No documented rule applies to this number in the current view.</p>
       ) : (
         shown.map((t) => (
           <div key={t.rule.id} className="rule-block">
-            <p>{variant === 'basic' ? text.basic(t.rule) : t.rule.advancedText}</p>
+            <p>{variant === 'basic' ? t.rule.basicText : t.rule.advancedText}</p>
             <EvidenceLabel rule={t.rule} />
             <Derivation>
               <ol>
@@ -161,7 +153,7 @@ export function CellDetail({ digit, analysis, triggered, variant, orientation = 
         ))
       )}
       <p className="muted small">
-        {tr(`This number always sits in the ${displayPosition(digit, orientation)} cell.`, `此數字永遠位於${ZH_POSITION[displayPosition(digit, orientation)] ?? ''}格。`)}
+        {`This number always sits in the ${displayPosition(digit, orientation)} cell.`}
       </p>
     </div>
   );

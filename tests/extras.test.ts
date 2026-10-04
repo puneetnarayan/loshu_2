@@ -36,7 +36,7 @@ describe('name numbers (Pythagorean)', () => {
     expect(n.ignored).toEqual(['7']);
   });
   it('returns null when there are no A-Z letters', () => {
-    for (const t of ['', '   ', '1234', '李明']) expect(computeNameNumbers(t)).toBeNull();
+    for (const t of ['', '   ', '1234', 'Иван']) expect(computeNameNumbers(t)).toBeNull();
   });
 });
 

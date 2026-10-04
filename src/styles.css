@@ -148,5 +148,3 @@ summary { cursor: pointer; font-weight: 600; }
 .brand { margin-top: 10px; border: 1px solid var(--soft-border); border-radius: 6px; padding: 6px 10px; }
 .brand summary { font-weight: 600; }
 
-.lang-switch { display: flex; gap: 8px; margin: 8px 0; }
-.app[lang='zh-Hant'] { font-family: 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', 'Heiti TC', system-ui, sans-serif; }

@@ -68,4 +68,3 @@ Every rule has `confidence` (`moderate`, `low` or `very-low`; never "high") and 
 
 - **Optional readings** are now: planetary profile, five elements, Kua, Driver–Destiny relation, remedies, gemstones (off by default), personal-year cycle (with personal months and a descriptive year grid) and name numbers. Each has a section-level rider and rule-level confidence.
 - **Report model:** `src/report/blocks.ts` builds one neutral block list. The PDF writer (`src/pdf/renderPdf.ts`) and the print view (`src/components/PrintReport.tsx`) both render it, so they cannot drift apart. Optional branding lines (business, operator, contact) are added at the top.
-- **Languages:** `src/i18n/` holds a small language context. English strings are the source of truth; Traditional Chinese covers the interface, Help and the Basic reading through explicit text tables (`src/i18n/zh.ts`). Rule texts outside Basic stay English by design.

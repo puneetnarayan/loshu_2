@@ -30,14 +30,13 @@
 
 ## Added later
 
-- **Traditional Chinese interface and Basic reading**, with an unreviewed-translation notice (Advanced and the PDF stay English; see `docs/research/research-log.md`, fifth pass).
 - **Business branding** lines on the PDF and printed report.
+- A Traditional Chinese option was built and then **removed at the owner's request**; no Chinese text remains in the repository.
 
 ## Still not ported
 
 - **Predictive and wealth/fame wording.** Deliberately left out (finding 5).
 - **Desktop packaging (Tauri).** This project is a web app.
-- **A Chinese PDF.** Needs an embedded CJK font and reviewed text; the print route already prints Chinese names.
 
 ## Suggested fixes for the reviewed project itself
 

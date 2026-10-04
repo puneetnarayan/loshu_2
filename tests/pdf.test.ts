@@ -44,9 +44,9 @@ describe('direct PDF', () => {
   });
   it('replaces characters the standard fonts cannot encode instead of failing', async () => {
     const ok = (cp: number) => cp < 0x100; // Latin-1 only
-    expect(makeSafe('a → b ≥ c ⚠ ✓ 李', ok)).toBe('a -> b >= c (!) (ok) ?');
+    expect(makeSafe('a → b ≥ c ⚠ ✓ И', ok)).toBe('a -> b >= c (!) (ok) ?');
     expect(makeSafe('José – naïve', ok)).toBe('José ? naïve'); // the en dash is not Latin-1, so it becomes ?
-    const bytes = await renderPdf(reportBlocks(make(), { ...opts, name: '李明 Zoë' }));
+    const bytes = await renderPdf(reportBlocks(make(), { ...opts, name: 'Иван Zoë' }));
     expect((await PDFDocument.load(bytes)).getPageCount()).toBeGreaterThanOrEqual(5);
   });
   it('works with no optional readings and no comparison', async () => {

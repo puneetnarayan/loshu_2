@@ -9,9 +9,6 @@ import type { GridLayer, Orientation } from './components/GridView';
 import { HelpPanel } from './components/Help';
 import { PrintReport } from './components/PrintReport';
 import { reportBlocks } from './report/blocks';
-import { LangProvider, useLang } from './i18n';
-import type { Lang } from './i18n';
-import { ZH_NOTICE } from './i18n/zh';
 import { buildReport, parseDob } from './loshu';
 import { DEFAULT_EXTRAS } from './data/schema';
 import type { Extra } from './data/schema';
@@ -29,16 +26,6 @@ const TABS: Array<{ id: Tab; label: string; blurb: string }> = [
 ];
 
 export function App() {
-  const [lang, setLang] = useState<Lang>('en');
-  return (
-    <LangProvider lang={lang}>
-      <AppInner lang={lang} onLang={setLang} />
-    </LangProvider>
-  );
-}
-
-function AppInner({ lang, onLang }: { lang: Lang; onLang: (l: Lang) => void }) {
-  const { tr, isZh } = useLang();
   const [tab, setTab] = useState<Tab>('advanced'); // Advanced is the default
   const [text, setText] = useState(DEFAULT_DOB_TEXT);
   const [name, setName] = useState(DEFAULT_NAME);
@@ -134,16 +121,11 @@ function AppInner({ lang, onLang }: { lang: Lang; onLang: (l: Lang) => void }) {
   };
 
   return (
-    <div className="app" lang={isZh ? 'zh-Hant' : 'en'}>
+    <div className="app" lang="en">
       <div className="screen-only">
       <header className="header">
-        <h1>{tr('Lo Shu Grid Calculator', '洛書九宮格計算器')}</h1>
-        <p className="muted">{tr('Deterministic calculation with a transparent, source-labelled traditional reading. Runs entirely in your browser.', '以確定性的計算搭配透明、標明來源的傳統解讀。完全在你的瀏覽器中執行。')}</p>
-        <div className="lang-switch" role="group" aria-label="Language / 語言">
-          <button type="button" className={`btn${lang === 'en' ? ' btn-primary' : ''}`} aria-pressed={lang === 'en'} onClick={() => onLang('en')}>English</button>
-          <button type="button" className={`btn${lang === 'zh-TW' ? ' btn-primary' : ''}`} aria-pressed={lang === 'zh-TW'} onClick={() => onLang('zh-TW')} lang="zh-Hant">繁體中文</button>
-        </div>
-        {isZh && <p className="rider rider-low" role="note">{ZH_NOTICE}</p>}
+        <h1>Lo Shu Grid Calculator</h1>
+        <p className="muted">Deterministic calculation with a transparent, source-labelled traditional reading. Runs entirely in your browser.</p>
         <HelpPanel open={helpOpen} onToggle={() => setHelpOpen((o) => !o)} />
       </header>
 
@@ -151,7 +133,7 @@ function AppInner({ lang, onLang }: { lang: Lang; onLang: (l: Lang) => void }) {
 
       {dob && (
         <p className="prepared">
-          {tr('Reading for ', '解讀對象：')}{name.trim() ? <strong>{name.trim()}</strong> : tr('the date', '這個日期')} · {tr('born ', '出生日期 ')}<strong>{dob.normalised}</strong>
+          Reading for{' '}{name.trim() ? <strong>{name.trim()}</strong> : 'the date'} · born{' '}<strong>{dob.normalised}</strong>
         </p>
       )}
 
@@ -172,8 +154,8 @@ function AppInner({ lang, onLang }: { lang: Lang; onLang: (l: Lang) => void }) {
             onClick={() => setTab(t.id)}
             onKeyDown={onTabKey}
           >
-            <strong>{isZh ? (t.id === 'basic' ? '基本' : '進階') : t.label}</strong>
-            <span className="small">{isZh ? (t.id === 'basic' ? '白話解讀' : '完整計算與來源（英文）') : t.blurb}</span>
+            <strong>{t.label}</strong>
+            <span className="small">{t.blurb}</span>
           </button>
         ))}
       </div>
@@ -208,7 +190,7 @@ function AppInner({ lang, onLang }: { lang: Lang; onLang: (l: Lang) => void }) {
         ))}
 
       <footer className="footer muted small">
-        {tr('Traditional interpretations are shown for cultural and educational interest. They are not scientifically validated and are not advice.', '傳統解讀僅供文化與教育興趣。它們未經科學驗證，也不是建議。')}
+        Traditional interpretations are shown for cultural and educational interest. They are not scientifically validated and are not advice.
       </footer>
       </div>
       {printing && advancedReport && (
@@ -221,10 +203,9 @@ function AppInner({ lang, onLang }: { lang: Lang; onLang: (l: Lang) => void }) {
 }
 
 function EmptyState({ id, selected, onSelect }: { id: Tab; selected: Digit | null; onSelect: (d: Digit) => void }) {
-  const { tr } = useLang();
   return (
     <div id={`panel-${id}`} role="tabpanel" aria-labelledby={`tab-${id}`} tabIndex={0} className="tabpanel">
-      <p className="intro">{tr('Enter a complete, valid date of birth above. The reading appears automatically as soon as the date is complete. This is the fixed grid your digits will be placed on:', '請在上方輸入完整且有效的出生日期。日期一完整，解讀就會自動出現。這是你的數字將被放入的固定九宮格：')}</p>
+      <p className="intro">Enter a complete, valid date of birth above. The reading appears automatically as soon as the date is complete. This is the fixed grid your digits will be placed on:</p>
       <GridView analysis={null} selected={selected} onSelect={onSelect} variant={id} />
       <CellDetail digit={null} analysis={null} triggered={[]} variant={id} />
     </div>
