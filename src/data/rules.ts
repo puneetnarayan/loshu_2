@@ -7,8 +7,10 @@ const VERSION = '1.0.0';
 const SCHOOL = 'Indian-style Lo Shu numerology (DOB digits, 3×3 grid)';
 const TRADITION = 'Popular Indian/Chinese-derived Lo Shu numerology as presented by online calculators';
 const NO_VALIDATION =
-  'No credible controlled study identified in this project supports personality or life-event predictions from Lo Shu patterns. One candidate empirical paper (SRC-JASNH-BIRTHNUMBERS) was identified by title only and has not been read.';
-const NUMEROLOGY_SOURCES = ['SRC-PARAMARSH', 'SRC-600IQ', 'SRC-ANKSHASTRA'];
+  'No credible controlled study identified in this project supports personality or life-event predictions from Lo Shu patterns. The closest empirical test found (Genovese, 2017, per a search summary; not opened) reported that birth numbers of Nobel Prize winners 1901–2010 did not differ from chance (p = 0.77). It tests birth numbers against one outcome, not Lo Shu grid claims. Readings can also feel accurate for reasons unrelated to validity (the Barnum/Forer effect).';
+const NUMEROLOGY_SOURCES = ['SRC-MEDIUM-1-TO-9', 'SRC-AFFIRMATIONFLOW-WHAT', 'SRC-PARAMARSH'];
+const PLANE_SOURCES = ['SRC-JCCHAUDHRY-PLANES', 'SRC-HOROSCOPERS-PLANES', 'SRC-OCCULTSCIENCE-PLANES', 'SRC-NUMEROLOGYBYNEHAA-PLANES'];
+const EMPTY_SOURCES = ['SRC-ASTROMEDHA-GRID', 'SRC-STARNUM-ARROWS'];
 const COMMON_LIMITS = [
   'Traditional symbolism, not a measured trait.',
   'Wording was written for this project from search-summary-level evidence; it is not a quotation of any source.',
@@ -35,7 +37,7 @@ interface NumberData {
 
 const N: Record<Digit, NumberData> = {
   1: {
-    keywords: 'independence, initiative and self-expression',
+    keywords: 'independence, leadership and self-expression',
     themes: ['independence', 'initiative'],
     planet: 'Sun',
     presentBasic: 'Traditionally linked with independence, taking the lead and a sense of self.',
@@ -143,7 +145,7 @@ const N: Record<Digit, NumberData> = {
     repeatPhrase: 'a strong sense of responsibility (repeated 6)',
   },
   7: {
-    keywords: 'reflection, analysis and inner inquiry',
+    keywords: 'analysis, reflection and spirituality',
     themes: ['reflection', 'analysis'],
     planet: 'Ketu',
     presentBasic: 'Traditionally linked with reflection, analysis and inner questions.',
@@ -161,7 +163,7 @@ const N: Record<Digit, NumberData> = {
     repeatPhrase: 'a strong inward, analytical streak (repeated 7)',
   },
   8: {
-    keywords: 'ambition, organisation and managing resources',
+    keywords: 'ambition, organisation and material matters',
     themes: ['ambition', 'organisation'],
     planet: 'Saturn',
     presentBasic: 'Traditionally linked with ambition, organisation and managing resources.',
@@ -179,17 +181,17 @@ const N: Record<Digit, NumberData> = {
     repeatPhrase: 'a strong drive for achievement (repeated 8)',
   },
   9: {
-    keywords: 'idealism, compassion and energy',
+    keywords: 'compassion, wisdom, completion and energy',
     themes: ['idealism', 'energy'],
     planet: 'Mars',
-    presentBasic: 'Traditionally linked with idealism, compassion and energy.',
-    presentAdv: 'Digit 9 (top centre) is conventionally associated with idealism, compassion and drive.',
+    presentBasic: 'Traditionally linked with compassion, wisdom, a sense of completion and energy.',
+    presentAdv: 'Digit 9 (top centre) is conventionally associated with compassion, wisdom and completion, and (via Mars in the Indian scheme) with energy and courage.',
     missingBasic: 'Traditionally, a missing 9 is read as an area for reflection around ideals and concern for the wider world.',
     missingAdv: 'Absence of 9 is conventionally read as less emphasis on idealism and broad concern. A reflection prompt only.',
-    repeatBasic: 'More than one 9 is traditionally read as strong idealism and energy. Tradition notes it can bring impatience or intensity.',
+    repeatBasic: 'More than one 9 is traditionally read as strong compassion and energy. Tradition notes it can bring impatience, anger or intensity.',
     repeatAdv: 'Repetition of 9 is conventionally read as intensified idealism and energy, with possible impatience or emotional intensity.',
     expression: 'Volunteering, advocacy, finishing what you start.',
-    challenge: 'Impatience or emotional intensity.',
+    challenge: 'Impatience, anger or emotional intensity.',
     reflection: 'Choose a cause or small act of service that matters to you and pace your energy.',
     missingReflection: 'Try one small act of service or a conversation about values.',
     phrase: 'idealism and energy (9)',
@@ -209,6 +211,66 @@ const base = {
   activation: 'default' as const,
 };
 
+const lc = (t: string) => t.charAt(0).toLowerCase() + t.slice(1).replace(/\.$/, '');
+
+const TIERS = [
+  { key: '2', min: 2, max: 2 as number | undefined, label: 'twice', word: 'Two' },
+  { key: '3', min: 3, max: 3 as number | undefined, label: 'three times', word: 'Three' },
+  { key: '4PLUS', min: 4, max: undefined as number | undefined, label: 'four or more times', word: 'Four or more' },
+] as const;
+
+/**
+ * Repetition tiers (2 / 3 / 4+). A search summary of Lo Shu guides described this tier
+ * pattern: two = strengthened, three = excess begins, four or more = dominant and needing
+ * management. Digit-specific detail beyond that framework was not verified, so the text is
+ * the generic framework applied to each digit's conservative keywords and challenge.
+ */
+function tierRules(d: Digit, n: NumberData, common: Partial<InterpretationRule>, pos: string): InterpretationRule[] {
+  return TIERS.map((t) => {
+    const tierText = {
+      '2': {
+        basic: `Two ${d}s: the tradition reads this as ${n.keywords} being strengthened. It is usually described as a positive emphasis, with ${lc(n.challenge)} mentioned only if it goes too far.`,
+        adv: `${d} occurs twice. Tier reading: strengthened expression of ${n.keywords}; the excess (${lc(n.challenge)}) is a caveat rather than the main reading.`,
+      },
+      '3': {
+        basic: `Three ${d}s: some teachers say the emphasis on ${n.keywords} becomes excessive at this point and can show up as ${lc(n.challenge)} Awareness of this can help.`,
+        adv: `${d} occurs three times. Tier reading: the emphasis on ${n.keywords} is described as becoming excessive, with possible ${lc(n.challenge)}.`,
+      },
+      '4PLUS': {
+        basic: `Four or more ${d}s: the tradition describes this as a dominant theme (${n.keywords}) that needs conscious management, since ${lc(n.challenge)} may be more pronounced. It is a prompt for reflection, not a verdict.`,
+        adv: `${d} occurs four or more times. Tier reading: a dominant theme (${n.keywords}) that calls for active management; possible ${lc(n.challenge)}.`,
+      },
+    }[t.key];
+    return {
+      ...common,
+      id: `NUM-${d}-REPEATED-${t.key}`,
+      title: `${d} appears ${t.label}`,
+      category: 'repetition',
+      subcategory: `repeated-${t.key}`,
+      sourceIds: ['SRC-JCCHAUDHRY-REPEAT', 'SRC-MEDIUM-1-TO-9', 'SRC-SILENTKNOWLEDGE-REPEAT', ...(d === 9 ? ['SRC-SILENTKNOWLEDGE-9', 'SRC-NUMERICWISDOM-9'] : [])],
+      sourceAgreement: 'school-specific',
+      sourceFidelityStatus: 'unverified-search-summary',
+      ruleDescription: `Digit ${d} occurs ${t.label}; read under the generic tier framework (2 strengthened, 3 excess begins, 4+ dominant) for ${n.keywords}.`,
+      triggerConditions: `Count of ${d} ${t.max === undefined ? `≥ ${t.min}` : `= ${t.min}`}`,
+      requiredDigits: [d],
+      requiredCounts: [{ digit: d, min: t.min, ...(t.max === undefined ? {} : { max: t.max }) }],
+      requiredLines: [],
+      calculationExplanation: `Count the digit ${d} (grid cell: ${pos}). This tier applies when the count is ${t.max === undefined ? `${t.min} or more` : `exactly ${t.min}`}.`,
+      basicText: tierText.basic,
+      advancedText: tierText.adv,
+      reflectionSuggestion: n.reflection,
+      knownDisagreements: [
+        'A search summary described the 2 / 3 / 4+ tier pattern, but it did not attribute it to a single page, and sources differ on what each count means for each digit.',
+        'Per-digit descriptions for specific counts (for example three 2s or four 2s) appear in some guides; they were not verified and are not reproduced here.',
+      ],
+      exclusions: ['Counts of five or more share the 4+ tier.'],
+      priority: 1,
+      direction: 'emphasis',
+      summaryPhrase: `${n.repeatPhrase}, appearing ${t.label}`,
+    } as InterpretationRule;
+  });
+}
+
 const numberRules: InterpretationRule[] = ([1, 2, 3, 4, 5, 6, 7, 8, 9] as Digit[]).flatMap((d) => {
   const n = N[d];
   const pos = POSITIONS[d].label;
@@ -227,6 +289,7 @@ const numberRules: InterpretationRule[] = ([1, 2, 3, 4, 5, 6, 7, 8, 9] as Digit[
       ...common,
       id: `NUM-${d}-PRESENT`,
       title: `${d} is present`,
+      sourceFidelityStatus: 'multiple-summaries-agree' as SourceFidelity,
       category: 'number',
       subcategory: 'present',
       ruleDescription: `Digit ${d} occurs at least once; traditionally associated with ${n.keywords}.`,
@@ -268,31 +331,7 @@ const numberRules: InterpretationRule[] = ([1, 2, 3, 4, 5, 6, 7, 8, 9] as Digit[
       direction: 'reflection',
       summaryPhrase: n.missingPhrase,
     } satisfies InterpretationRule,
-    {
-      ...common,
-      id: `NUM-${d}-REPEATED`,
-      title: `${d} is repeated`,
-      category: 'repetition',
-      subcategory: 'repeated',
-      sourceIds: ['SRC-SILENTKNOWLEDGE-REPEAT', ...NUMEROLOGY_SOURCES],
-      sourceAgreement: 'school-specific',
-      ruleDescription: `Digit ${d} occurs two or more times; read as an intensified emphasis on ${n.keywords}, with possible excess.`,
-      triggerConditions: `Count of ${d} ≥ 2`,
-      requiredDigits: [d],
-      requiredCounts: [{ digit: d, min: 2 }],
-      requiredLines: [],
-      calculationExplanation: `Count the digit ${d}. Repeated when the count is 2 or more. This single rule covers all counts of 2 or more: count-specific readings (2 vs 3+) are not implemented because they could not be verified.`,
-      basicText: n.repeatBasic,
-      advancedText: n.repeatAdv,
-      reflectionSuggestion: n.reflection,
-      knownDisagreements: [
-        'A search summary said repeated numbers signal strength; others describe both strength and excess. Sources differ on how counts of 2, 3 and more should be read.',
-      ],
-      exclusions: ['No separate rule for exactly two, three or four or more occurrences.'],
-      priority: 1,
-      direction: 'emphasis',
-      summaryPhrase: n.repeatPhrase,
-    } satisfies InterpretationRule,
+    ...tierRules(d, n, common, pos),
   ];
 });
 
@@ -302,10 +341,15 @@ interface LineData {
   meaning: string;
   themes: string[];
   basicComplete: string;
-  basicEmpty: string;
-  agreement: 'shared' | 'disputed' | 'school-specific';
-  fidelity: SourceFidelity;
+  completeFidelity: SourceFidelity;
+  completeAgreement: 'shared' | 'disputed' | 'school-specific';
   disagreements: string[];
+  /** Traditional label some sources give when all three digits are missing. */
+  emptyName: string;
+  emptyAlt?: string;
+  emptyMeaning: string;
+  emptyFidelity: SourceFidelity;
+  emptyDisagreements: string[];
   reflection: string;
   expression: string;
   challenge: string;
@@ -315,39 +359,51 @@ const LINE_DATA: Record<string, LineData> = {
   'H-492': {
     name: 'Mental plane',
     alt: 'Arrow of Intellect',
-    meaning: 'thinking, memory and analysis',
+    meaning: 'thinking, memory and intellectual structure',
     themes: ['analysis', 'reflection'],
     basicComplete: 'This line is complete. Traditionally it is called the mental plane and linked with thinking, memory and analysis.',
-    basicEmpty: 'None of the three digits appear. Traditionally this is a prompt to reflect on thinking and study habits, not a fixed weakness.',
-    agreement: 'shared',
-    fidelity: 'unverified-search-summary',
+    completeFidelity: 'multiple-summaries-agree',
+    completeAgreement: 'shared',
     disagreements: ['One search summary used "Arrow of Intellect" for this line; others used "Mental plane". Treated as alternative names.'],
+    emptyName: 'weakness arrow on the mental plane',
+    emptyMeaning: 'difficulty with memory and planning ahead, or acting before thinking',
+    emptyFidelity: 'unverified-search-summary',
+    emptyDisagreements: ['Poor memory is attached to 3-5-7 (not 4-9-2) in another summary; the label here follows the mental-plane guide.'],
     reflection: 'Make time for reading, puzzles or learning something new.',
     expression: 'Analytical thinking and planning.',
     challenge: 'Over-thinking.',
   },
   'H-357': {
     name: 'Emotional plane (soul plane)',
-    meaning: 'feelings, sensitivity and intuition',
+    meaning: 'feelings, sensitivity, intuition and self-expression',
     themes: ['sensitivity', 'reflection'],
     basicComplete: 'This line is complete. Traditionally it is called the emotional or soul plane and linked with feelings, sensitivity and intuition.',
-    basicEmpty: 'None of the three digits appear. Traditionally this is a prompt to reflect on how you notice and express feelings, not a fixed weakness.',
-    agreement: 'shared',
-    fidelity: 'unverified-search-summary',
-    disagreements: ['Some summaries say "emotional plane", others "soul plane"; treated as alternative names.'],
+    completeFidelity: 'multiple-summaries-agree',
+    completeAgreement: 'shared',
+    disagreements: [
+      'Some summaries say "emotional plane", others "soul plane"; treated as alternative names.',
+      'One summary called 3-5-7 the "Arrow of Compassion" (strong faith, philosophical outlook); this alias is not used here.',
+    ],
+    emptyName: 'arrow of poor memory',
+    emptyMeaning: 'scattered recall',
+    emptyFidelity: 'unverified-search-summary',
+    emptyDisagreements: ['The same "poor memory" idea is attached to the mental plane (4-9-2) in another guide.'],
     reflection: 'Keep a short daily note about how you feel and why.',
     expression: 'Empathy and intuition.',
     challenge: 'Being overwhelmed by feelings.',
   },
   'H-816': {
     name: 'Practical plane (physical plane)',
-    meaning: 'practical action and getting things done',
+    meaning: 'practical action, material competence and getting things done',
     themes: ['organisation', 'initiative'],
     basicComplete: 'This line is complete. Traditionally it is called the practical or physical plane and linked with practical action and follow-through.',
-    basicEmpty: 'None of the three digits appear. Traditionally this is a prompt to reflect on turning plans into action, not a fixed weakness.',
-    agreement: 'shared',
-    fidelity: 'unverified-search-summary',
+    completeFidelity: 'multiple-summaries-agree',
+    completeAgreement: 'shared',
     disagreements: ['Some summaries say "practical plane", others "physical plane"; treated as alternative names.'],
+    emptyName: 'arrow of losses',
+    emptyMeaning: 'money and effort leaking away',
+    emptyFidelity: 'unverified-search-summary',
+    emptyDisagreements: ['The label is a predictive claim about losses; it is reported as a traditional name and not endorsed.'],
     reflection: 'Break one goal into small steps and schedule the first.',
     expression: 'Turning plans into results.',
     challenge: 'Over-focus on material outcomes.',
@@ -355,73 +411,90 @@ const LINE_DATA: Record<string, LineData> = {
   'V-438': {
     name: 'Thought and planning plane',
     alt: 'Arrow of the Planner',
-    meaning: 'vision, strategy and planning',
+    meaning: 'the ability to plan and sequence ideas',
     themes: ['organisation', 'creativity'],
-    basicComplete: 'This line is complete. One naming tradition calls it the thought and planning plane and links it with planning and strategy.',
-    basicEmpty: 'None of the three digits appear. Under that naming this is a prompt to reflect on planning ahead, not a fixed weakness.',
-    agreement: 'disputed',
-    fidelity: 'sources-disagree',
+    basicComplete: 'This line is complete. Traditionally it is called the thought plane and linked with planning and sequencing ideas.',
+    completeFidelity: 'sources-disagree',
+    completeAgreement: 'disputed',
     disagreements: [
-      'Search summaries disagree on naming: one calls 4-3-8 the "Thought Plane / Arrow of the Planner" while another lists "Arrow of Determination 4-3-8", whereas a third calls 9-5-1 the Arrow of Determination.',
+      'The plane name "Thought plane" was reported consistently, but one summary lists "Arrow of Determination 4-3-8" while others give that name to 9-5-1 (and some to the diagonal 1-5-9 of a different grid layout). The "Arrow of Determination" alias is therefore disputed.',
     ],
+    emptyName: 'arrow of indecision',
+    emptyAlt: 'arrow of confusion',
+    emptyMeaning: 'overthinking and difficulty being methodical or organised',
+    emptyFidelity: 'sources-disagree',
+    emptyDisagreements: ['Summaries used "indecision" and "confusion" for the same empty line.'],
     reflection: 'Sketch a simple plan for the next few months and review it monthly.',
     expression: 'Strategy and long-range planning.',
     challenge: 'Planning without acting.',
   },
   'V-951': {
     name: 'Will plane',
-    alt: 'Arrow of Determination',
-    meaning: 'willpower and determination',
+    alt: 'Arrow of Determination (disputed)',
+    meaning: 'determination and follow-through',
     themes: ['initiative', 'energy'],
-    basicComplete: 'This line is complete. One naming tradition calls it the will plane (arrow of determination) and links it with willpower and persistence.',
-    basicEmpty: 'None of the three digits appear. Under that naming this is a prompt to reflect on persistence and follow-through, not a fixed weakness.',
-    agreement: 'disputed',
-    fidelity: 'sources-disagree',
+    basicComplete: 'This line is complete. Traditionally it is called the will plane and linked with determination and follow-through.',
+    completeFidelity: 'sources-disagree',
+    completeAgreement: 'disputed',
     disagreements: [
-      'Search summaries disagree on which line is the "Arrow of Determination" (9-5-1 vs 4-3-8). Naming here follows the "Will plane" convention and is flagged as disputed.',
+      '"Will plane" for 9-5-1 was reported consistently, but the alias "Arrow of Determination" is attached to 4-3-8 in one summary and to 1-5-9 (a different grid layout) in another. Another guide calls the golden diagonal 4-5-6 the "will power plane".',
     ],
+    emptyName: 'arrow of passivity',
+    emptyMeaning: 'waiting for others to act',
+    emptyFidelity: 'unverified-search-summary',
+    emptyDisagreements: [],
     reflection: 'Choose one commitment and track it for a few weeks.',
     expression: 'Persistence and resolve.',
     challenge: 'Obstinacy.',
   },
   'V-276': {
     name: 'Action plane',
-    meaning: 'action, courage and getting results',
+    meaning: 'turning thought into real-world action',
     themes: ['initiative', 'energy'],
-    basicComplete: 'This line is complete. Traditionally it is called the action line and linked with taking action and courage.',
-    basicEmpty: 'None of the three digits appear. Traditionally this is a prompt to reflect on taking action, not a fixed weakness.',
-    agreement: 'school-specific',
-    fidelity: 'unverified-search-summary',
-    disagreements: ['Only some summaries name this line; other sources may give it no traditional name.'],
+    basicComplete: 'This line is complete. Traditionally it is called the action plane and linked with taking action and courage.',
+    completeFidelity: 'multiple-summaries-agree',
+    completeAgreement: 'shared',
+    disagreements: ['Not every guide names this line.'],
+    emptyName: 'arrow of loneliness',
+    emptyMeaning: 'being goal-focused with fewer close relationships',
+    emptyFidelity: 'unverified-search-summary',
+    emptyDisagreements: ['The label is a predictive claim about relationships; it is reported as a traditional name and not endorsed.'],
     reflection: 'Pick a small action you have been postponing and do it today.',
     expression: 'Decisive action.',
     challenge: 'Acting without enough thought.',
   },
   'D-456': {
-    name: 'Golden line',
-    meaning: 'practical resourcefulness; some calculators also associate it with luck or wealth',
+    name: 'Golden line (golden yog, raj yog)',
+    meaning: 'practical resourcefulness; some guides also associate it with success, fame or money',
     themes: ['organisation', 'balance'],
-    basicComplete: 'This line is complete. Some calculators call it the golden line and link it with practical resourcefulness. Claims about luck or wealth are traditional and not supported by evidence.',
-    basicEmpty: 'None of the three digits appear. Under that naming this is only a prompt to reflect on practical resourcefulness.',
-    agreement: 'school-specific',
-    fidelity: 'unverified-search-summary',
+    basicComplete: 'This line is complete. Some guides call it the golden line and link it with practical resourcefulness. Claims about luck, fame or wealth are traditional and are not supported by evidence.',
+    completeFidelity: 'multiple-summaries-agree',
+    completeAgreement: 'school-specific',
     disagreements: [
-      'Names such as "golden line" (4-5-6) and "silver line" (2-5-8) come from a limited set of calculators; other schools name diagonals differently or not at all.',
-      'Wealth and luck associations are predictive claims; they are reported as tradition and not endorsed.',
+      'The names golden/silver for the diagonals recur across summaries, but some other schools name diagonals differently or not at all.',
+      'Wealth, fame and luck are predictive claims. One summary also claimed that only 2–3% of people have this line; no source was given. This project computed 1.5% (1900–2025, DOB digits only) and 7.1% (with Driver and Destiny added) of calendar dates, and the share depends heavily on the date range and on the overlay convention.',
+      'Another guide calls 4-5-6 the "will power plane", which conflicts with the "will plane" name for 9-5-1.',
     ],
+    emptyName: 'arrow of frustration',
+    emptyMeaning: 'repressed energy and emotional churn',
+    emptyFidelity: 'sources-disagree',
+    emptyDisagreements: ['Another summary gave the name "arrow of frustration" to the empty 2-5-8 line instead.'],
     reflection: 'Review one practical habit (planning, saving or organising) that supports your goals.',
     expression: 'Resourcefulness.',
     challenge: 'Expecting luck instead of effort.',
   },
   'D-258': {
-    name: 'Silver line',
-    meaning: 'emotional balance, empathy and spiritual interest',
+    name: 'Silver line (silver yog, property plane)',
+    meaning: 'emotional stability, empathy and patience; some guides also link it with property',
     themes: ['sensitivity', 'balance'],
-    basicComplete: 'This line is complete. Some calculators call it the silver line and link it with emotional balance and empathy.',
-    basicEmpty: 'None of the three digits appear. Under that naming this is only a prompt to reflect on emotional balance and empathy.',
-    agreement: 'school-specific',
-    fidelity: 'unverified-search-summary',
+    basicComplete: 'This line is complete. Some guides call it the silver line and link it with emotional stability and patience. Property or wealth claims are traditional and are not supported by evidence.',
+    completeFidelity: 'multiple-summaries-agree',
+    completeAgreement: 'school-specific',
     disagreements: ['Names and meanings for the diagonals vary or are absent in other schools.'],
+    emptyName: 'arrow of sensitivity',
+    emptyMeaning: 'being very sensitive and hiding feelings',
+    emptyFidelity: 'sources-disagree',
+    emptyDisagreements: ['Another summary gave the name "arrow of frustration" to the empty 2-5-8 line.'],
     reflection: 'Try a regular calming practice, such as a short walk or breathing exercise.',
     expression: 'Empathy and balance.',
     challenge: 'Absorbing other people’s moods.',
@@ -435,57 +508,58 @@ const lineRules: InterpretationRule[] = LINES.flatMap((line) => {
   const common = {
     ...base,
     subcategory: line.kind,
-    sourceIds: ['SRC-VEDICMEET-ARROWS', 'SRC-600IQ', 'SRC-PARAMARSH'],
-    sourceAgreement: d.agreement,
     requiredDigits: [] as Digit[],
     requiredCounts: [],
     constructiveExpression: d.expression,
     potentialChallenge: d.challenge,
     reflectionSuggestion: d.reflection,
     themes: d.themes,
-    calculationMethod: 'Geometric line membership: a line is complete when all three of its digits are present.',
   };
   const aliasNote = d.alt ? ` (also: ${d.alt})` : '';
+  const emptyAlias = d.emptyAlt ? ` (also "${d.emptyAlt}")` : '';
+  const diagonalSources = ['SRC-SHIVOHAM-RAJYOG', 'SRC-ASTROMEDHA-GRID'];
   return [
     {
       ...common,
       id: `LINE-${line.id}-COMPLETE`,
       title: `${lbl} is complete — ${d.name}`,
       category: 'line',
+      sourceIds: line.kind === 'diagonal' ? [...PLANE_SOURCES, ...diagonalSources] : PLANE_SOURCES,
+      sourceAgreement: d.completeAgreement,
+      calculationMethod: 'Geometric line membership: a line is complete when all three of its digits are present.',
       ruleDescription: `All of ${line.digits.join(', ')} are present; this line is named "${d.name}"${aliasNote} in one naming tradition and linked with ${d.meaning}.`,
       triggerConditions: `Line ${lbl} has all three digits present`,
       requiredLines: [{ lineId: line.id, state: 'complete' }],
       calculationExplanation: `The three positions of the ${line.kind} line ${lbl} hold digits ${line.digits.join(', ')}. The line is complete when each has a count of at least 1.`,
       basicText: d.basicComplete,
       advancedText: `Line ${lbl} (${line.kind}) complete. Name: ${d.name}${aliasNote}. Meaning in this naming: ${d.meaning}.`,
-      sourceFidelityStatus: d.fidelity,
+      sourceFidelityStatus: d.completeFidelity,
       knownDisagreements: d.disagreements,
-      exclusions: ['Partially populated lines have no documented rule here.'],
+      exclusions: ['Partially populated lines have no documented rule here.', 'Arrows that belong to a different grid layout (such as 1-2-3 or 1-5-9) are not lines of the Lo Shu square and are not used.'],
       priority: 1,
       direction: 'strength',
-      summaryPhrase: `the ${d.name.toLowerCase()} (${lbl}) is complete`,
+      summaryPhrase: `the ${d.name.split(' (')[0]!.toLowerCase()} (${lbl}) is complete`,
     } satisfies InterpretationRule,
     {
       ...common,
       id: `LINE-${line.id}-EMPTY`,
-      title: `${lbl} is entirely empty — ${d.name}`,
+      title: `${lbl} is entirely empty — ${d.emptyName}`,
       category: 'empty-line',
-      ruleDescription: `None of ${line.digits.join(', ')} are present. Read as a reflection prompt about ${d.meaning}.`,
+      sourceIds: line.id === 'H-492' ? [...EMPTY_SOURCES, 'SRC-LOSHUCALC-MINDPLANE'] : line.id === 'D-456' ? [...EMPTY_SOURCES, 'SRC-ASTROMEDHA-FRUSTRATION'] : line.id === 'H-357' ? [...EMPTY_SOURCES, 'SRC-ASTROMEDHA-POORMEMORY'] : EMPTY_SOURCES,
+      sourceAgreement: d.emptyFidelity === 'sources-disagree' ? 'disputed' : 'school-specific',
+      calculationMethod: 'Geometric line membership: a line is empty when none of its three digits is present.',
+      ruleDescription: `None of ${line.digits.join(', ')} are present. Some sources call this the "${d.emptyName}"${emptyAlias} and describe ${d.emptyMeaning}. Framed here as a reflection prompt about ${d.meaning}.`,
       triggerConditions: `Line ${lbl} has all three digits missing`,
       requiredLines: [{ lineId: line.id, state: 'empty' }],
       calculationExplanation: `The three positions of the ${line.kind} line ${lbl} hold digits ${line.digits.join(', ')}. The line is empty when each has a count of 0.`,
-      basicText: d.basicEmpty,
-      advancedText: `Line ${lbl} (${line.kind}) entirely empty. In the "${d.name}" naming this is read as less emphasis on ${d.meaning}.`,
-      sourceFidelityStatus: 'insufficient-documentation',
-      knownDisagreements: [
-        ...d.disagreements,
-        'Sources that mention "missing arrows" were not read in full; this empty-line reading is a project convention derived from the complete-line meaning.',
-      ],
+      basicText: `None of the three numbers appear. Some sources call this the "${d.emptyName}" and describe ${d.emptyMeaning}. The tradition presents it as an area for reflection, not a fixed trait or a prediction.`,
+      advancedText: `Line ${lbl} (${line.kind}) entirely empty. Traditional label: "${d.emptyName}"${emptyAlias}, described as ${d.emptyMeaning}. Related complete-line name: ${d.name}.`,
+      sourceFidelityStatus: d.emptyFidelity,
+      knownDisagreements: [...d.emptyDisagreements, 'Negative labels such as "losses" or "loneliness" are the sources’ words; this project reports them as tradition and frames them as reflection prompts only.'],
       exclusions: ['A line with one or two digits is not empty and has no documented rule here.'],
-      limitations: [...COMMON_LIMITS, 'Empty-line reading is derived, not directly documented.'],
       priority: 1,
       direction: 'reflection',
-      summaryPhrase: `the ${d.name.toLowerCase()} (${lbl}) is entirely empty`,
+      summaryPhrase: `the ${d.name.split(' (')[0]!.toLowerCase()} (${lbl}) is entirely empty`,
     } satisfies InterpretationRule,
   ];
 });
@@ -498,9 +572,9 @@ const planetRules: InterpretationRule[] = ([1, 2, 3, 4, 5, 6, 7, 8, 9] as Digit[
   subcategory: 'planet',
   school: 'Indian numerology, planetary assignment',
   tradition: 'Indian numerology (Moolank/Bhagyank school)',
-  sourceIds: ['SRC-SWARNSIDDHI-DC', 'SRC-PARAMARSH'],
+  sourceIds: ['SRC-OCCULTSCIENCE-PLANETS', 'SRC-ASTROSIGHT-PLANETS', 'SRC-WEBINDIA-RULING'],
   sourceAgreement: 'school-specific',
-  sourceFidelityStatus: 'insufficient-documentation',
+  sourceFidelityStatus: 'multiple-summaries-agree',
   ruleDescription: `In one common Indian scheme the digit ${d} is assigned to ${N[d].planet}.`,
   triggerConditions: `Count of ${d} ≥ 1 and planetary option enabled`,
   requiredDigits: [d],
@@ -509,15 +583,15 @@ const planetRules: InterpretationRule[] = ([1, 2, 3, 4, 5, 6, 7, 8, 9] as Digit[
   calculationMethod: 'Lookup of the digit in the selected planetary table.',
   calculationExplanation: `Digit ${d} is mapped to ${N[d].planet} in this scheme. The mapping is a convention, not a calculation.`,
   basicText: `In one Indian tradition, ${d} is linked with ${N[d].planet}.`,
-  advancedText: `Planetary association (Indian scheme): ${d} → ${N[d].planet}. Western and other schemes may differ (notably for 4 and 7).`,
+  advancedText: `Planetary association (Indian scheme): ${d} → ${N[d].planet}. Other schemes may differ; one summary lists 4 as Uranus (Rahu).`,
   constructiveExpression: N[d].expression,
   potentialChallenge: N[d].challenge,
   reflectionSuggestion: N[d].reflection,
   knownDisagreements: [
-    'Planetary tables differ between schools (for example the treatment of Rahu/Ketu versus outer planets). The mapping used here was not verified against a primary text.',
+    'Several search summaries agreed on this nine-planet mapping, but planetary tables differ between schools; one summary lists 4 as "Uranus (Rahu)". The mapping was not verified against a primary text.',
   ],
   exclusions: ['No astronomical or astrological calculation is performed.'],
-  limitations: [...COMMON_LIMITS, 'Mapping not verified against a primary text.'],
+  limitations: [...COMMON_LIMITS, 'Mapping not verified against a primary text; no astronomical or astrological calculation is performed.'],
   priority: 2,
   themes: [],
   direction: 'strength',

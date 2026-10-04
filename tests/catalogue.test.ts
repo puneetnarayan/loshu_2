@@ -14,26 +14,51 @@ describe('source and rule validation', () => {
   it('the shipped catalogue is valid', () => {
     expect(validateCatalogue(RULES, SOURCES)).toEqual([]);
   });
-  it('has 27 number rules, 16 line rules and 9 planetary rules with unique ids', () => {
-    expect(RULES.filter((r) => ['number', 'missing-number', 'repetition'].includes(r.category))).toHaveLength(27);
+  it('has 45 number rules (present, missing, three repetition tiers), 16 line rules and 9 planetary rules with unique ids', () => {
+    expect(RULES.filter((r) => ['number', 'missing-number', 'repetition'].includes(r.category))).toHaveLength(45);
     expect(RULES.filter((r) => ['line', 'empty-line'].includes(r.category))).toHaveLength(16);
     expect(RULES.filter((r) => r.category === 'planetary')).toHaveLength(9);
     expect(new Set(RULES.map((r) => r.id)).size).toBe(RULES.length);
   });
   it('covers every digit with present/missing/repeated and every line with complete/empty', () => {
     for (const d of [1, 2, 3, 4, 5, 6, 7, 8, 9]) {
-      for (const k of ['PRESENT', 'MISSING', 'REPEATED']) expect(RULES.some((r) => r.id === `NUM-${d}-${k}`)).toBe(true);
+      for (const k of ['PRESENT', 'MISSING', 'REPEATED-2', 'REPEATED-3', 'REPEATED-4PLUS']) expect(RULES.some((r) => r.id === `NUM-${d}-${k}`)).toBe(true);
     }
     for (const l of LINES) for (const k of ['COMPLETE', 'EMPTY']) expect(RULES.some((r) => r.id === `LINE-${l.id}-${k}`)).toBe(true);
   });
   it('every source reference resolves in the registry', () => {
     for (const r of RULES) for (const s of r.sourceIds) expect(getSource(s)).toBeDefined();
   });
-  it('never invents authors or dates: unknown values are null', () => {
+  it('never invents authors or dates: only the empirical paper has them, and it is flagged as not opened', () => {
     for (const s of SOURCES) {
-      if (s.accessMethod !== 'read-in-full') expect(s.publicationDate).toBeNull();
+      if (s.id === 'SRC-JASNH-BIRTHNUMBERS') continue;
+      expect(s.publicationDate).toBeNull();
+      expect(s.author).toBeNull();
     }
+    const paper = getSource('SRC-JASNH-BIRTHNUMBERS')!;
+    expect(paper).toMatchObject({ author: 'Jeremy Genovese', publicationDate: '2017-02', accessMethod: 'search-summary-only' });
+    expect(paper.note).toMatch(/not opened/);
     expect(getSource('SRC-ASTROSAKI')!.accessMethod).toBe('not-accessible');
+  });
+  it('no source is marked as read in full (none could be opened)', () => {
+    expect(SOURCES.filter((s) => s.accessMethod === 'read-in-full')).toEqual([]);
+  });
+  it('repetition tiers partition counts: 2, 3 and 4+ never overlap and cover 2..9', () => {
+    for (let n = 0; n <= 9; n++) {
+      const hits = RULES.filter((r) => r.id.startsWith('NUM-4-REPEATED') && r.requiredCounts.every((c) => (c.min === undefined || n >= c.min) && (c.max === undefined || n <= c.max)));
+      expect(hits).toHaveLength(n >= 2 ? 1 : 0);
+    }
+  });
+  it('every empty-line rule names the traditional label and flags the disputed ones', () => {
+    const empties = RULES.filter((r) => r.category === 'empty-line');
+    expect(empties).toHaveLength(8);
+    for (const r of empties) expect(r.advancedText).toMatch(/Traditional label: "/);
+    expect(empties.filter((r) => r.sourceFidelityStatus === 'sources-disagree').map((r) => r.id).sort()).toEqual(['LINE-D-258-EMPTY', 'LINE-D-456-EMPTY', 'LINE-V-438-EMPTY']);
+  });
+  it('planetary rules use the multi-summary label and only the planets of the Indian scheme', () => {
+    const planets = RULES.filter((r) => r.category === 'planetary');
+    expect(planets.every((r) => r.sourceFidelityStatus === 'multiple-summaries-agree')).toBe(true);
+    expect(planets.map((r) => r.title.split(' and ')[1]!.split(' ')[0])).toEqual(['Sun', 'Moon', 'Jupiter', 'Rahu', 'Mercury', 'Venus', 'Ketu', 'Saturn', 'Mars']);
   });
   it('no rule claims strong fidelity or empirical status without a source read in full', () => {
     for (const r of RULES) {
@@ -72,7 +97,7 @@ describe('rule matching on the 23-11-1994 fixture', () => {
     const expected = [
       ...[1, 2, 3, 4, 9].map((d) => `NUM-${d}-PRESENT`),
       ...[5, 6, 7, 8].map((d) => `NUM-${d}-MISSING`),
-      'NUM-1-REPEATED', 'NUM-9-REPEATED', 'LINE-H-492-COMPLETE',
+      'NUM-1-REPEATED-3', 'NUM-9-REPEATED-2', 'LINE-H-492-COMPLETE',
     ];
     expect(ids(triggered).sort()).toEqual(expected.sort());
   });
@@ -82,11 +107,11 @@ describe('rule matching on the 23-11-1994 fixture', () => {
     expect(ids(withPlanets).filter((i) => i.startsWith('PLANET')).sort()).toEqual(['PLANET-1', 'PLANET-2', 'PLANET-3', 'PLANET-4', 'PLANET-9']);
   });
   it('a present-once digit is not treated as repeated', () => {
-    expect(ids(triggered)).not.toContain('NUM-2-REPEATED');
-    expect(ids(triggered)).not.toContain('NUM-4-REPEATED');
+    expect(ids(triggered).filter((i) => i.startsWith('NUM-2-REPEATED') || i.startsWith('NUM-4-REPEATED'))).toEqual([]);
+    expect(ids(triggered)).not.toContain('NUM-1-REPEATED-2');
   });
   it('explains why each rule fired using the actual input', () => {
-    const t = triggered.find((x) => x.rule.id === 'NUM-1-REPEATED')!;
+    const t = triggered.find((x) => x.rule.id === 'NUM-1-REPEATED-3')!;
     expect(t.why.join(' ')).toMatch(/Digit 1 occurs 3 times/);
     const l = triggered.find((x) => x.rule.id === 'LINE-H-492-COMPLETE')!;
     expect(l.why.join(' ')).toMatch(/Line 4–9–2 is complete/);
@@ -95,10 +120,10 @@ describe('rule matching on the 23-11-1994 fixture', () => {
     const o = evaluateRules(RULES, analyse(dobOf('23-11-1994'), 'dob-driver-destiny'));
     expect(ids(o)).toContain('NUM-5-PRESENT');
     expect(ids(o)).not.toContain('NUM-5-MISSING');
-    expect(ids(o)).toContain('NUM-3-REPEATED');
+    expect(ids(o)).toContain('NUM-3-REPEATED-2');
   });
   it('matchRule supports min, max and not-complete conditions', () => {
-    const base = clone(RULES.find((r) => r.id === 'NUM-1-REPEATED')!);
+    const base = clone(RULES.find((r) => r.id === 'NUM-1-REPEATED-2')!);
     expect(matchRule({ ...base, requiredCounts: [{ digit: 1, min: 4 }] }, a, { planetary: false })).toBeNull();
     expect(matchRule({ ...base, requiredCounts: [{ digit: 1, min: 1, max: 3 }] }, a, { planetary: false })).not.toBeNull();
     expect(matchRule({ ...base, requiredCounts: [], requiredDigits: [], requiredLines: [{ lineId: 'H-357', state: 'not-complete' }] }, a, { planetary: false })).not.toBeNull();
@@ -111,7 +136,7 @@ describe('synthesis', () => {
   const report = buildReport(dob);
   it('separates primary from secondary patterns', () => {
     expect(ids(report.synthesis.primary).sort()).toEqual(
-      ['LINE-H-492-COMPLETE', 'NUM-1-REPEATED', 'NUM-5-MISSING', 'NUM-6-MISSING', 'NUM-7-MISSING', 'NUM-8-MISSING', 'NUM-9-REPEATED'].sort(),
+      ['LINE-H-492-COMPLETE', 'NUM-1-REPEATED-3', 'NUM-5-MISSING', 'NUM-6-MISSING', 'NUM-7-MISSING', 'NUM-8-MISSING', 'NUM-9-REPEATED-2'].sort(),
     );
     expect(ids(report.synthesis.secondary).sort()).toEqual(['NUM-1-PRESENT', 'NUM-2-PRESENT', 'NUM-3-PRESENT', 'NUM-4-PRESENT', 'NUM-9-PRESENT']);
   });
@@ -127,7 +152,7 @@ describe('synthesis', () => {
   it('lists unsupported interpretations instead of filling gaps', () => {
     const subjects = report.synthesis.unsupported.map((u) => u.subject).join(' | ');
     expect(subjects).toMatch(/Partially populated lines/);
-    expect(subjects).toMatch(/Count-specific/);
+    expect(subjects).toMatch(/Digit-specific readings for exact counts/);
     expect(subjects).toMatch(/Kua/);
     expect(subjects).not.toMatch(/Driver\/Destiny and Lo Shu lines/); // DOB-only: no overlay interaction note
     const o = buildReport(dob, 'dob-driver-destiny').synthesis.unsupported.map((u) => u.subject).join(' | ');
@@ -145,9 +170,9 @@ describe('synthesis', () => {
   });
   it('builds the summary only from triggered rule phrases and caveats it', () => {
     const text = report.synthesis.summary.join(' ');
-    expect(text).toMatch(/a strong emphasis on independence \(repeated 1\)/);
+    expect(text).toMatch(/a strong emphasis on independence \(repeated 1\), appearing three times/);
     expect(text).toMatch(/the mental plane \(4–9–2\) is complete/);
-    expect(text).toMatch(/self-direction and initiative|goals and resource management \(missing 8\)/);
+    expect(text).toMatch(/goals and resource management \(missing 8\)/);
     expect(text).toMatch(/not measured facts/);
     expect(text).not.toMatch(/\(5\)\s*,/); // no planetary text unless enabled
   });

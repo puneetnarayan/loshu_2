@@ -3,7 +3,7 @@
 A standalone Vite + React + TypeScript app with two tabs, **Basic** (plain language) and **Advanced** (full audit, overlays, sources, evidence labels). Advanced is the default tab.
 Everything is computed in the browser; no backend, API key or analytics.
 
-> **Status note:** the interpretation wording is based on search-result summaries because source pages could not be opened during research. See `docs/research/research-log.md` before relying on any source attribution.
+> **Status note:** the interpretation wording is based on search-result summaries from several web sources; no source page could be opened (network egress was blocked), so nothing is labelled as directly verified. See `docs/research/research-log.md` before relying on any source attribution.
 
 ## Run
 

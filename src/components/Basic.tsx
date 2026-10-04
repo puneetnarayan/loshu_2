@@ -84,7 +84,7 @@ export function Basic({ report, selected, onSelect }: Props) {
         ) : (
           <>
             <p>
-              Numbers that appear more than once: <strong>{a.audit.repeatedSet.map((d) => `${d} (×${a.audit.rawCounts[d]})`).join(', ')}</strong>. More repeats do not simply mean more benefit; the tradition describes both strengths and possible excess. Because sources disagree about how to read two versus three or more repeats, this page uses one general reading.
+              Numbers that appear more than once: <strong>{a.audit.repeatedSet.map((d) => `${d} (×${a.audit.rawCounts[d]})`).join(', ')}</strong>. More repeats do not simply mean more benefit; the tradition describes both strengths and possible excess. The tradition reads two, three and four-or-more repeats differently (strengthened, then excessive, then dominant), so each is explained separately below.
             </p>
             <ul className="plain">
               {repeated.map((t) => (
@@ -130,7 +130,7 @@ export function Basic({ report, selected, onSelect }: Props) {
               const line = a.lines.find((l) => l.def.id === t.rule.requiredLines[0]?.lineId)!;
               return (
                 <li key={t.rule.id}>
-                  <strong>{lineLabel(line.def)}</strong> ({LINE_NAMES[line.def.id]?.name}): {t.rule.basicText}
+                  <strong>{lineLabel(line.def)}</strong> · {LINE_NAMES[line.def.id]?.name}: {t.rule.basicText}
                   <EvidenceLabel rule={t.rule} />
                   <RuleDerivation rule={t.rule} why={t.why} />
                 </li>
@@ -150,7 +150,7 @@ export function Basic({ report, selected, onSelect }: Props) {
               const line = a.lines.find((l) => l.def.id === t.rule.requiredLines[0]?.lineId)!;
               return (
                 <li key={t.rule.id}>
-                  <strong>{lineLabel(line.def)}</strong> ({LINE_NAMES[line.def.id]?.name}): {t.rule.basicText}
+                  <strong>{lineLabel(line.def)}</strong> · {LINE_NAMES[line.def.id]?.name}: {t.rule.basicText}
                   <EvidenceLabel rule={t.rule} />
                   <RuleDerivation rule={t.rule} why={t.why} />
                 </li>
@@ -218,7 +218,8 @@ export function Basic({ report, selected, onSelect }: Props) {
           <li><strong>The counting is arithmetic.</strong> It is checked automatically and is reproducible.</li>
           <li><strong>The meanings are tradition.</strong> We found no credible controlled evidence that a birth-date grid predicts personality or life events.</li>
           <li>Different numerology schools read the same grid differently, and some line names are disputed.</li>
-          <li>We could not open the web pages the wording is based on, so the wording has not been checked against those texts. See the source labels in the Advanced tab.</li>
+          <li>The wording is based on summaries of several web sources, not on the full texts, and it has not been checked against them. See the source labels in the Advanced tab.</li>
+          <li>A reading can feel accurate even when it is not (the Barnum or Forer effect). Feeling that it fits you is not evidence that it is valid.</li>
           <li>Please do not use this for medical, financial, legal or relationship decisions.</li>
         </ul>
       </Section>

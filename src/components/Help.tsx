@@ -11,7 +11,8 @@ const GLOSSARY: Array<[string, string]> = [
   ['Present / Repeated / Missing', 'Present: count of at least 1. Repeated: count of 2 or more. Missing: count of 0.'],
   ['Line, arrow, plane', 'Any of the eight straight lines of three cells (3 rows, 3 columns, 2 diagonals). Names such as "mental plane" or "arrow of determination" are traditional labels that differ between sources.'],
   ['Complete / partial / empty line', 'Complete: all three digits present. Empty: all three missing. Partial: one or two present.'],
-  ['Source fidelity', 'How faithfully a rule represents an identified source. "Source not directly verified" means only search-result summaries were available.'],
+  ['Source fidelity', 'How faithfully a rule represents an identified source. No source page could be opened, so the strongest label is "Several search summaries agree"; "Source not directly verified" is weaker (one summary).'],
+  ['Barnum (Forer) effect', 'The tendency to rate vague, general descriptions as highly accurate for oneself. It is one reason that feeling a reading fits is not evidence that it is valid.'],
   ['Scientific evidence label', 'Whether credible controlled research supports the claim. Traditional interpretations here carry the label "not scientifically validated".'],
   ['Rule ID', 'A stable identifier (for example NUM-5-MISSING) so any conclusion can be traced to the catalogue entry that produced it.'],
 ];
@@ -35,7 +36,7 @@ export function HelpPanel({ open, onToggle }: { open: boolean; onToggle: () => v
             <li><strong>Arrows and planes.</strong> Each straight line of three cells is checked. A complete line has all three digits; an empty line has none. Line names vary by school and some are disputed.</li>
             <li><strong>Driver and Destiny overlays (Advanced).</strong> Optional extra numbers derived from the date. They are counted in a separate layer so the raw date digits stay unchanged. Whether to include them depends on the school.</li>
             <li><strong>Reading the labels.</strong> "Calculation verified" means the arithmetic checks passed. The evidence label tells you whether science supports the meaning (here: traditional, not validated). The source label says how well the wording is tied to its source. These are never combined into a percentage.</li>
-            <li><strong>Limitations.</strong> The meanings are traditional symbolism. No credible controlled evidence was identified that birth-date grids predict personality or events. The wording was based on search summaries because the source pages could not be opened. Do not use it for medical, financial, legal or relationship decisions.</li>
+            <li><strong>Limitations.</strong> The meanings are traditional symbolism. No credible controlled evidence was identified that birth-date grids predict personality or events. The wording is based on summaries of several web sources, not their full texts. A reading can also feel accurate for reasons unrelated to validity (the Barnum or Forer effect), so a sense of fit is not evidence. Do not use it for medical, financial, legal or relationship decisions.</li>
             <li><strong>Why it is here.</strong> It gives a numerology app a reproducible, transparent calculation with a traceable, source-labelled reading, so users and practitioners can see exactly how each statement arose and compare conventions.</li>
           </ol>
           <h3>Glossary</h3>

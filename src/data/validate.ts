@@ -9,6 +9,7 @@ const REQUIRED_STRING_FIELDS: Array<keyof InterpretationRule> = [
 ];
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+const PARTIAL_DATE = /^\d{4}(-\d{2}(-\d{2})?)?$/;
 
 /** Returns a list of human-readable problems. An empty list means the catalogue is valid. */
 export function validateCatalogue(rules: readonly InterpretationRule[], sources: readonly SourceRecord[]): string[] {
@@ -19,7 +20,7 @@ export function validateCatalogue(rules: readonly InterpretationRule[], sources:
     sourceIds.add(s.id);
     if (!/^https:\/\//.test(s.url)) errors.push(`Source ${s.id}: url must be https`);
     if (!ISO_DATE.test(s.lastReviewed)) errors.push(`Source ${s.id}: lastReviewed must be YYYY-MM-DD`);
-    if (s.publicationDate !== null && !ISO_DATE.test(s.publicationDate)) errors.push(`Source ${s.id}: bad publicationDate`);
+    if (s.publicationDate !== null && !PARTIAL_DATE.test(s.publicationDate)) errors.push(`Source ${s.id}: bad publicationDate (use YYYY, YYYY-MM or YYYY-MM-DD)`);
     if (!s.title.trim()) errors.push(`Source ${s.id}: empty title`);
   }
 

@@ -147,7 +147,7 @@ export function Advanced(p: Props) {
       <Section title="Individual number analysis">
         {DIGITS.map((d) => {
           const stat = a.digits.find((s) => s.digit === d)!;
-          const kinds = [['PRESENT', 'Present (1 or more)'], ['REPEATED', 'Repeated (2 or more)'], ['MISSING', 'Missing (0)']] as const;
+          const kinds = [['PRESENT', 'Present (1 or more)'], ['REPEATED-2', 'Appears twice'], ['REPEATED-3', 'Appears three times'], ['REPEATED-4PLUS', 'Appears four or more times'], ['MISSING', 'Missing (0)']] as const;
           const present = digitRule(d, 'PRESENT');
           const applies = (k: string) => nowIds.has(`NUM-${d}-${k}`);
           return (
@@ -170,7 +170,7 @@ export function Advanced(p: Props) {
                 <dt>Practical reflection</dt><dd>{present.reflectionSuggestion}</dd>
                 <dt>Planetary association (optional)</dt><dd>{planetary ? `${DIGIT_PLANETS[d]} (Indian scheme)` : 'Hidden. Enable the planetary option above.'}</dd>
                 <dt>Source and attribution</dt><dd>{present.sourceIds.join(', ')} (details in the rule record below)</dd>
-                <dt>Conflicting interpretations</dt><dd>{[...present.knownDisagreements, ...digitRule(d, 'REPEATED').knownDisagreements, ...digitRule(d, 'MISSING').knownDisagreements].join(' ')}</dd>
+                <dt>Conflicting interpretations</dt><dd>{[...present.knownDisagreements, ...digitRule(d, 'REPEATED-2').knownDisagreements, ...digitRule(d, 'MISSING').knownDisagreements].join(' ')}</dd>
               </dl>
               <EvidenceLabel rule={present} />
               <details className="derive"><summary>Full rule records</summary>

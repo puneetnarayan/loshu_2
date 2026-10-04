@@ -10,8 +10,9 @@ export type EvidenceClassification =
 
 /**
  * How faithfully the rule represents an identified source.
- * `unverified-search-summary` is deliberately the weakest honest label: the rule was
- * derived from search-result summaries and the page itself could not be read.
+ * No source page could be opened in this project (only search-result summaries), so the
+ * strongest label available is `multiple-summaries-agree`: separate searches returned
+ * consistent statements. `unverified-search-summary` is weaker: a single summary.
  */
 export type SourceFidelity =
   | 'directly-documented'
@@ -19,6 +20,7 @@ export type SourceFidelity =
   | 'school-specific'
   | 'sources-disagree'
   | 'insufficient-documentation'
+  | 'multiple-summaries-agree'
   | 'unverified-search-summary';
 
 export type SourceAgreement = 'shared' | 'disputed' | 'school-specific' | 'unknown';
@@ -131,6 +133,11 @@ export const FIDELITY_LABELS: Record<SourceFidelity, { short: string; explanatio
   'insufficient-documentation': {
     short: 'Insufficient source documentation',
     explanation: 'No source clearly documents this rule. It is a project convention built on adjacent documented ideas.',
+  },
+  'multiple-summaries-agree': {
+    short: 'Several search summaries agree (pages not read)',
+    explanation:
+      'Separate searches returned consistent statements of this rule from different sites. The pages themselves could not be opened, so wording has not been compared with the source texts.',
   },
   'unverified-search-summary': {
     short: 'Source not directly verified',

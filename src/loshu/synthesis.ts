@@ -107,8 +107,8 @@ export function synthesise(triggered: TriggeredRule[], a: Analysis): Synthesis {
   const repeated = a.digits.filter((d) => d.combinedCount >= 2);
   if (repeated.length > 0) {
     unsupported.push({
-      subject: `Count-specific readings (${repeated.map((d) => `${d.digit}×${d.combinedCount}`).join(', ')})`,
-      reason: 'Sources differ on how two, three or more repeats should be read, so one general repetition rule is used.',
+      subject: `Digit-specific readings for exact counts (${repeated.map((d) => `${d.digit}×${d.combinedCount}`).join(', ')})`,
+      reason: 'A generic tier framework (2 strengthened, 3 excessive, 4+ dominant) is applied. Guides give more specific per-digit descriptions for some counts, but they could not be verified, so none is used.',
     });
   }
   if (a.mode.addsDriver || a.mode.addsDestiny) {

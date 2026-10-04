@@ -8,6 +8,7 @@
 - **Destiny (Bhagyank):** all eight digits of the date, summed, repeated digit-sum until 1–9, with no master-number preservation. Example: 23-11-1994 → 2+3+1+1+1+9+9+4 = 30 → 3.
 - **Overlay layer:** separate counts. Each selected overlay adds **one** occurrence of its digit (Driver and/or Destiny; they stack if equal). `combined = raw + overlay`. The raw audit trail is never rewritten.
 - **Modes:** DOB only (default), +Driver, +Destiny, +Driver+Destiny. **+Kua is listed but unavailable** (see `docs/research/research-log.md`, subject 7).
+- **Repetition:** three tiers per digit: two (strengthened), three (excess begins), four or more (dominant). Per-digit count-specific descriptions are not used because they were not verified.
 - **Lines:** exactly eight geometric lines: rows 4-9-2, 3-5-7, 8-1-6; columns 4-3-8, 9-5-1, 2-7-6; diagonals 4-5-6, 2-5-8. Complete = 3 present, empty = 3 missing, partial otherwise. No other groupings are ever created.
 - **Basic tab** always uses DOB-only. **Advanced** uses the selected mode. Both call the same `buildReport()` function; there are no separate formulas.
 
@@ -26,8 +27,8 @@ Theme tags are project-assigned grouping labels, not claims by any source. No LL
 ## Accuracy and confidence: four separate questions
 
 1. **Mathematical verification.** Runtime checks (`verifyAnalysis`) re-derive the result by a different route; the UI says "Calculation verified" only if all pass. The automated test suite additionally covers dates, counts, lines, overlays, rule matching and consistency.
-2. **Source fidelity.** Per-rule label from the registry-linked sources. At this review all rules are `unverified-search-summary`, `sources-disagree` or `insufficient-documentation` (see research log).
-3. **Scientific evidence.** Per-rule label; all rules are "traditional interpretation, not scientifically validated".
+2. **Source fidelity.** Per-rule label from the registry-linked sources. No source page could be opened, so the strongest label is `multiple-summaries-agree`; others are `unverified-search-summary` and `sources-disagree` (see research log).
+3. **Scientific evidence.** Per-rule label; all rules are "traditional interpretation, not scientifically validated". The closest empirical test found (Genovese 2017, birth numbers vs Nobel winners) was null and does not test Lo Shu grids. The Barnum/Forer effect is the reason a sense of fit is not evidence.
 4. **User-perceived fit.** Not collected. If added later it must be reported separately and never as accuracy.
 
 These are never merged into a single percentage.

@@ -8,7 +8,7 @@ export function ruleById(id: string): InterpretationRule | undefined {
 }
 
 /** Rules for a digit, by frequency kind. */
-export function digitRule(digit: Digit, kind: 'PRESENT' | 'MISSING' | 'REPEATED'): InterpretationRule {
+export function digitRule(digit: Digit, kind: 'PRESENT' | 'MISSING' | 'REPEATED-2' | 'REPEATED-3' | 'REPEATED-4PLUS'): InterpretationRule {
   const r = ruleById(`NUM-${digit}-${kind}`);
   if (!r) throw new Error(`Missing catalogue rule NUM-${digit}-${kind}`);
   return r;
