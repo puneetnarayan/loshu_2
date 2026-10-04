@@ -2,6 +2,8 @@ import { CONFIDENCE_LABELS, EVIDENCE_LABELS, FIDELITY_LABELS } from '../data/sch
 import type { Extra } from '../data/schema';
 import { DIGIT_PLANETS, LINE_NAMES } from '../data/rules';
 import { getSource } from '../data/sources';
+import { valenceOf, VALENCE_LEGEND } from '../data/valence';
+import type { Valence } from '../data/valence';
 import { FREQUENCY_RANGE, patternFrequencies } from '../lookup';
 import { analyse, compareAnalyses, GRID_LAYOUT, KUA_GROUP_DIRECTIONS, kuaGroup, kuaSteps, lineLabel, parseDob, personalMonths, planetProfile, yearGrid } from '../loshu';
 import type { Report } from '../loshu';
@@ -9,8 +11,8 @@ import type { Report } from '../loshu';
 /** A neutral, renderer-independent description of the report (used by the PDF writer). */
 export type Block =
   | { t: 'h1' | 'h2' | 'h3'; text: string }
-  | { t: 'p'; text: string; style?: 'note' | 'normal' }
-  | { t: 'ul'; items: string[] }
+  | { t: 'p'; text: string; style?: 'note' | 'normal'; valence?: Valence }
+  | { t: 'ul'; items: Array<string | { text: string; valence: Valence }> }
   | { t: 'table'; caption?: string; head?: string[]; rows: string[][] }
   | { t: 'grid'; caption: string; cells: Array<Array<{ digit: number; line1: string; line2: string }>> };
 
@@ -49,7 +51,10 @@ function rules(items: Report['triggered']): Block {
     items: items.map((t) => {
       const r = t.rule;
       const rider = r.confidence !== 'moderate' ? ` Rider: ${r.confidenceReason}` : '';
-      return `${r.title} [${r.id}]: ${r.advancedText} (${EVIDENCE_LABELS[r.evidenceClassification].short}; ${FIDELITY_LABELS[r.sourceFidelityStatus].short}; ${CONFIDENCE_LABELS[r.confidence].short}).${rider}`;
+      return {
+        valence: valenceOf(r),
+        text: `${r.title} [${r.id}]: ${r.advancedText} (${EVIDENCE_LABELS[r.evidenceClassification].short}; ${FIDELITY_LABELS[r.sourceFidelityStatus].short}; ${CONFIDENCE_LABELS[r.confidence].short}).${rider}`,
+      };
     }),
   };
 }
@@ -112,7 +117,8 @@ export function reportBlocks(report: Report, o: BlockOptions): Block[] {
   });
 
   b.push({ t: 'h2', text: '4. Interpretation (rule-based)' });
-  for (const s of synthesis.summary) b.push({ t: 'p', text: s });
+  b.push({ t: 'p', style: 'note', text: VALENCE_LEGEND });
+  synthesis.summary.forEach((s, i) => b.push({ t: 'p', text: s, valence: synthesis.summaryValence[i] ?? undefined }));
   b.push({ t: 'h3', text: 'Primary patterns' });
   b.push(rules(synthesis.primary));
   b.push({ t: 'h3', text: 'Secondary patterns' });

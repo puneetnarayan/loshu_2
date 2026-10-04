@@ -32,6 +32,8 @@ export interface Synthesis {
   unsupported: Unsupported[];
   /** Deterministic summary sentences. */
   summary: string[];
+  /** Framing of each summary sentence (same order), or null for plain statements; used only for colouring. */
+  summaryValence: Array<'positive' | 'neutral' | 'negative' | null>;
   audit: AuditEntry[];
 }
 
@@ -129,40 +131,46 @@ export function synthesise(triggered: TriggeredRule[], a: Analysis): Synthesis {
 
   // 6. Deterministic summary.
   const summary: string[] = [];
+  const summaryValence: Synthesis['summaryValence'] = [];
+  const say = (text: string, v: Synthesis['summaryValence'][number] = null) => {
+    summary.push(text);
+    summaryValence.push(v);
+  };
   const strengthsPrimary = primary.filter((t) => isStrength(t.rule)).map((t) => t.rule.summaryPhrase);
   const reflectPrimary = primary.filter((t) => t.rule.direction === 'reflection').map((t) => t.rule.summaryPhrase);
   if (strengthsPrimary.length > 0) {
-    summary.push(`Within this tradition, the strongest patterns in this date are: ${listJoin(strengthsPrimary)}.`);
+    say(`Within this tradition, the strongest patterns in this date are: ${listJoin(strengthsPrimary)}.`, 'positive');
   } else {
-    summary.push('No complete line or repeated number stands out in this date, so the tradition highlights no dominant pattern.');
+    say('No complete line or repeated number stands out in this date, so the tradition highlights no dominant pattern.', 'neutral');
   }
   if (reflectPrimary.length > 0) {
-    summary.push(`The tradition offers these as areas for reflection rather than fixed weaknesses: ${listJoin(reflectPrimary)}.`);
+    say(`The tradition offers these as areas for reflection rather than fixed weaknesses: ${listJoin(reflectPrimary)}.`, 'negative');
   }
   const partialPhrases = secondary.filter((t) => t.rule.category === 'partial-line').map((t) => t.rule.summaryPhrase);
   if (partialPhrases.length > 0) {
-    summary.push(`Partly formed lines (generic tiers): ${listJoin(partialPhrases)}.`);
+    say(`Partly formed lines (generic tiers): ${listJoin(partialPhrases)}.`, 'neutral');
   }
   const phrases = (cats: string[]) => context.filter((t) => cats.includes(t.rule.category)).map((t) => t.rule.summaryPhrase);
   const keyNumbers = phrases(['driver', 'destiny']);
-  if (keyNumbers.length > 0) summary.push(`Key numbers: ${listJoin(keyNumbers)}.`);
+  if (keyNumbers.length > 0) say(`Key numbers: ${listJoin(keyNumbers)}.`, 'neutral');
   const planets = phrases(['planet-profile']);
-  if (planets.length > 0) summary.push(`Planetary view (low confidence): ${listJoin(planets)}.`);
+  if (planets.length > 0) say(`Planetary view (low confidence): ${listJoin(planets)}.`, 'neutral');
   const els = phrases(['element']);
-  if (els.length > 0) summary.push(`Element view (low confidence): ${listJoin(els)}.`);
+  if (els.length > 0) say(`Element view (low confidence): ${listJoin(els)}.`, 'neutral');
   const cyc = phrases(['cycle']);
-  if (cyc.length > 0) summary.push(`Cycle (very low confidence, forecast-style): ${listJoin(cyc)}.`);
+  if (cyc.length > 0) say(`Cycle (very low confidence, forecast-style): ${listJoin(cyc)}.`, 'neutral');
   if (reinforcing.length > 0) {
-    summary.push(`Reinforcing themes: ${listJoin(reinforcing.map((g) => g.theme))}.`);
+    say(`Reinforcing themes: ${listJoin(reinforcing.map((g) => g.theme))}.`, 'positive');
   }
   if (conflicts.length > 0) {
-    summary.push(
+    say(
       `Themes that appear on both sides, which the tradition treats as different aspects rather than contradictions: ${listJoin(conflicts.map((g) => g.theme))}.`,
+      'neutral',
     );
   }
-  if (a.completeLineIds.length === 0) summary.push('No line is complete.');
-  if (a.emptyLineIds.length === 0) summary.push('No line is entirely empty.');
-  summary.push('These are traditional readings, not measured facts about a person.');
+  if (a.completeLineIds.length === 0) say('No line is complete.');
+  if (a.emptyLineIds.length === 0) say('No line is entirely empty.');
+  say('These are traditional readings, not measured facts about a person.');
 
   // 7 + 9. Audit.
   const audit: AuditEntry[] = [
@@ -187,5 +195,5 @@ export function synthesise(triggered: TriggeredRule[], a: Analysis): Synthesis {
     })),
   ];
 
-  return { primary, secondary, context, duplicatesRemoved, reinforcing, conflicts, unsupported, summary, audit };
+  return { primary, secondary, context, duplicatesRemoved, reinforcing, conflicts, unsupported, summary, summaryValence, audit };
 }

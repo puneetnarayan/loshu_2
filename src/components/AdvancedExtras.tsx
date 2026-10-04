@@ -3,15 +3,15 @@ import { DIGIT_PLANETS, LINE_NAMES } from '../data/rules';
 import { FREQUENCY_RANGE, patternFrequencies } from '../lookup';
 import { analyse, compareAnalyses, ELEMENT_DIGITS, KUA_GROUP_DIRECTIONS, kuaGroup, kuaSteps, lineLabel, parseDob, personalMonths, planetProfile, RELATION_TABLE, yearGrid } from '../loshu';
 import type { Digit, Report } from '../loshu';
-import { EvidenceLabel, RuleDerivation, Rider, Section, StatusTag, TableWrap } from './shared';
+import { EvidenceLabel, readingClass, RuleDerivation, Rider, Section, StatusTag, TableWrap, ValenceTag, ruleValence } from './shared';
 
 function RuleBlocks({ items }: { items: Report['triggered'] }) {
   if (items.length === 0) return <p className="muted">No documented rule applies.</p>;
   return (
     <ul className="plain">
       {items.map((t) => (
-        <li key={t.rule.id}>
-          <strong>{t.rule.title}</strong> <code>{t.rule.id}</code>
+        <li key={t.rule.id} className={readingClass(ruleValence(t.rule))}>
+          <ValenceTag v={ruleValence(t.rule)} /> <strong>{t.rule.title}</strong> <code>{t.rule.id}</code>
           <br />
           {t.rule.advancedText}
           <EvidenceLabel rule={t.rule} />

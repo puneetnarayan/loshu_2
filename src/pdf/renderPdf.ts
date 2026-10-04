@@ -1,5 +1,7 @@
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import type { PDFFont, PDFPage } from 'pdf-lib';
+import { VALENCE_TAG } from '../data/valence';
+import type { Valence } from '../data/valence';
 import type { Block } from '../report/blocks';
 
 const A4 = { w: 595.28, h: 841.89 };
@@ -8,6 +10,11 @@ const INK = rgb(0.08, 0.1, 0.15);
 const MUTED = rgb(0.3, 0.33, 0.4);
 const LINE = rgb(0.45, 0.48, 0.55);
 const FILL = rgb(0.93, 0.95, 0.99);
+const TINT: Record<Valence, { bg: ReturnType<typeof rgb>; edge: ReturnType<typeof rgb> }> = {
+  positive: { bg: rgb(0.89, 0.96, 0.91), edge: rgb(0.18, 0.49, 0.27) },
+  neutral: { bg: rgb(0.99, 0.96, 0.84), edge: rgb(0.6, 0.48, 0.07) },
+  negative: { bg: rgb(0.98, 0.89, 0.89), edge: rgb(0.69, 0.24, 0.24) },
+};
 
 /** Characters the standard PDF fonts cannot encode are replaced by readable equivalents. */
 const REPLACEMENTS: Record<string, string> = {
@@ -67,15 +74,23 @@ class Writer {
     }
     return lines;
   }
-  paragraph(text: string, o: { font: PDFFont; size: number; color?: ReturnType<typeof rgb>; indent?: number; gap?: number; bullet?: boolean }) {
+  paragraph(text: string, o: { font: PDFFont; size: number; color?: ReturnType<typeof rgb>; indent?: number; gap?: number; bullet?: boolean; valence?: Valence }) {
     const indent = o.indent ?? 0;
     const lh = o.size * 1.35;
-    const lines = this.wrap(text, o.font, o.size, A4.w - 2 * M - indent);
+    // A coloured reading always starts with its text tag, so colour is never the only signal.
+    const full = o.valence ? `${VALENCE_TAG[o.valence]}: ${text}` : text;
+    const lines = this.wrap(full, o.font, o.size, A4.w - 2 * M - indent - (o.valence ? 8 : 0));
     lines.forEach((ln, i) => {
       this.ensure(lh);
       this.y -= lh;
-      if (o.bullet && i === 0) this.page.drawText('-', { x: M + indent - 9, y: this.y, size: o.size, font: o.font, color: o.color ?? INK });
-      this.page.drawText(ln, { x: M + indent, y: this.y, size: o.size, font: o.font, color: o.color ?? INK });
+      if (o.valence) {
+        const t = TINT[o.valence];
+        const x0 = M + indent - 6;
+        this.page.drawRectangle({ x: x0, y: this.y - 3, width: A4.w - 2 * M - indent + 6, height: lh, color: t.bg });
+        this.page.drawRectangle({ x: x0, y: this.y - 3, width: 3, height: lh, color: t.edge });
+      }
+      if (o.bullet && i === 0 && !o.valence) this.page.drawText('-', { x: M + indent - 9, y: this.y, size: o.size, font: o.font, color: o.color ?? INK });
+      this.page.drawText(ln, { x: M + indent + (o.valence ? 4 : 0), y: this.y, size: o.size, font: o.font, color: o.color ?? INK });
     });
     this.y -= o.gap ?? 4;
   }
@@ -173,8 +188,8 @@ export async function renderPdf(blocks: Block[]): Promise<Uint8Array> {
       case 'h1': w.heading(b.text, 18, 0); break;
       case 'h2': w.heading(b.text, 13, 12); break;
       case 'h3': w.heading(b.text, 10.5, 6); break;
-      case 'p': w.paragraph(b.text, { font: b.style === 'note' ? f.italic : f.regular, size: 9.5, color: b.style === 'note' ? MUTED : INK }); break;
-      case 'ul': b.items.forEach((it) => w.paragraph(it, { font: f.regular, size: 9, indent: 14, bullet: true, gap: 3 })); w.y -= 2; break;
+      case 'p': w.paragraph(b.text, { font: b.style === 'note' ? f.italic : f.regular, size: 9.5, color: b.style === 'note' ? MUTED : INK, valence: b.valence }); break;
+      case 'ul': b.items.forEach((it) => (typeof it === 'string' ? w.paragraph(it, { font: f.regular, size: 9, indent: 14, bullet: true, gap: 3 }) : w.paragraph(it.text, { font: f.regular, size: 9, indent: 14, gap: 3, valence: it.valence }))); w.y -= 2; break;
       case 'table': w.table(b.head, b.rows, b.caption); break;
       case 'grid': w.grid(b.caption, b.cells); break;
     }

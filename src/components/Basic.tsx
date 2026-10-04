@@ -3,7 +3,7 @@ import { FREQUENCY_RANGE, patternFrequencies } from '../lookup';
 import type { Digit, Report } from '../loshu';
 import { lineLabel } from '../loshu';
 import { CellDetail, GridView } from './GridView';
-import { Derivation, EvidenceLabel, RuleDerivation, Section, StatusTag, VerificationBadge } from './shared';
+import { ColourGuide, Derivation, EvidenceLabel, RuleDerivation, readingClass, Section, StatusTag, ValenceTag, ruleValence, VerificationBadge } from './shared';
 
 interface Props {
   report: Report;
@@ -30,6 +30,7 @@ export function Basic({ report, selected, onSelect }: Props) {
         The Lo Shu Grid is a 3×3 square. Each digit of your birth date goes into its fixed spot. This page shows what the tradition says about the pattern, as ideas to reflect on, not facts about you.
       </p>
       <VerificationBadge analysis={a} checks={checks} />
+      <ColourGuide />
 
       <Section title="1. Your Lo Shu Grid">
         <GridView analysis={a} selected={selected} onSelect={onSelect} variant="basic" triggered={triggered} />
@@ -76,7 +77,8 @@ export function Basic({ report, selected, onSelect }: Props) {
         {present.length === 0 && <p>No documented rule applies.</p>}
         <ul className="plain">
           {present.map((t) => (
-            <li key={t.rule.id}>
+            <li key={t.rule.id} className={readingClass(ruleValence(t.rule))}>
+              <ValenceTag v={ruleValence(t.rule)} />{' '}
               <strong>{t.rule.requiredDigits[0]}</strong>: {t.rule.basicText}
               <RuleDerivation rule={t.rule} why={t.why} />
             </li>
@@ -95,7 +97,8 @@ export function Basic({ report, selected, onSelect }: Props) {
             </p>
             <ul className="plain">
               {repeated.map((t) => (
-                <li key={t.rule.id}>
+                <li key={t.rule.id} className={readingClass(ruleValence(t.rule))}>
+              <ValenceTag v={ruleValence(t.rule)} />{' '}
                   <strong>{t.rule.requiredCounts[0]?.digit}</strong>:{' '}{t.rule.basicText}
                   <RuleDerivation rule={t.rule} why={t.why} />
                 </li>
@@ -116,7 +119,8 @@ export function Basic({ report, selected, onSelect }: Props) {
             </p>
             <ul className="plain">
               {missing.map((t) => (
-                <li key={t.rule.id}>
+                <li key={t.rule.id} className={readingClass(ruleValence(t.rule))}>
+              <ValenceTag v={ruleValence(t.rule)} />{' '}
                   <strong>{t.rule.requiredCounts[0]?.digit}</strong>:{' '}{t.rule.basicText}
                   <br />
                   <span className="muted">Idea to try:{' '}{t.rule.reflectionSuggestion}</span>
@@ -137,7 +141,8 @@ export function Basic({ report, selected, onSelect }: Props) {
             {complete.map((t) => {
               const line = a.lines.find((l) => l.def.id === t.rule.requiredLines[0]?.lineId)!;
               return (
-                <li key={t.rule.id}>
+                <li key={t.rule.id} className={readingClass(ruleValence(t.rule))}>
+              <ValenceTag v={ruleValence(t.rule)} />{' '}
                   <strong>{lineLabel(line.def)}</strong> · {lineName(line.def.id)}:{' '}{t.rule.basicText}
                   <EvidenceLabel rule={t.rule} />
                   <RuleDerivation rule={t.rule} why={t.why} />
@@ -157,7 +162,8 @@ export function Basic({ report, selected, onSelect }: Props) {
             {empty.map((t) => {
               const line = a.lines.find((l) => l.def.id === t.rule.requiredLines[0]?.lineId)!;
               return (
-                <li key={t.rule.id}>
+                <li key={t.rule.id} className={readingClass(ruleValence(t.rule))}>
+              <ValenceTag v={ruleValence(t.rule)} />{' '}
                   <strong>{lineLabel(line.def)}</strong> · {lineName(line.def.id)}:{' '}{t.rule.basicText}
                   <EvidenceLabel rule={t.rule} />
                   <RuleDerivation rule={t.rule} why={t.why} />
@@ -172,7 +178,8 @@ export function Basic({ report, selected, onSelect }: Props) {
             <p className="muted">Some guides grade a line by how many of its three numbers appear: two is moderate, one is weak. They do not read which numbers those are, so neither do we.</p>
             <ul className="plain">
               {partialTiers.map((t) => (
-                <li key={t.rule.id}>
+                <li key={t.rule.id} className={readingClass(ruleValence(t.rule))}>
+              <ValenceTag v={ruleValence(t.rule)} />{' '}
                   <strong>{lineLabel(a.lines.find((l) => l.def.id === t.rule.requiredLines[0]?.lineId)!.def)}</strong> · {lineName(t.rule.requiredLines[0]!.lineId)}:{' '}{t.rule.basicText}
                   <EvidenceLabel rule={t.rule} />
                   <RuleDerivation rule={t.rule} why={t.why} />
@@ -184,13 +191,19 @@ export function Basic({ report, selected, onSelect }: Props) {
       </Section>
 
       <Section title="8. Your Overall Interpretation">
-        {synthesis.summary.map((s) => (
-          <p key={s}>{s}</p>
-        ))}
+        {synthesis.summary.map((s, i) => {
+          const v = synthesis.summaryValence[i];
+          return v ? (
+            <p key={s} className={readingClass(v)}><ValenceTag v={v} /> {s}</p>
+          ) : (
+            <p key={s}>{s}</p>
+          );
+        })}
         <h4>Your two key numbers</h4>
         <ul className="plain">
           {keyNumbers.map((t) => (
-            <li key={t.rule.id}>
+            <li key={t.rule.id} className={readingClass(ruleValence(t.rule))}>
+              <ValenceTag v={ruleValence(t.rule)} />{' '}
               {t.rule.basicText}
               <EvidenceLabel rule={t.rule} />
               <RuleDerivation rule={t.rule} why={t.why} />

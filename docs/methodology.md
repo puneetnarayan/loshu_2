@@ -68,3 +68,9 @@ Every rule has `confidence` (`moderate`, `low` or `very-low`; never "high") and 
 
 - **Optional readings** are now: planetary profile, five elements, Kua, Driver–Destiny relation, remedies, gemstones (off by default), personal-year cycle (with personal months and a descriptive year grid) and name numbers. Each has a section-level rider and rule-level confidence.
 - **Report model:** `src/report/blocks.ts` builds one neutral block list. The PDF writer (`src/pdf/renderPdf.ts`) and the print view (`src/components/PrintReport.tsx`) both render it, so they cannot drift apart. Optional branding lines (business, operator, contact) are added at the top.
+
+## Interpretation colours
+
+Only interpretation text is coloured: pastel green for positive, pastel yellow for neutral or mixed, pastel red for a challenge or area for reflection. Calculations, tables, the grid, riders, evidence chips and help text keep their normal styling. Colour is never the only signal: every coloured reading starts with a text tag (Positive, Neutral, Challenge), in the page, the print view and the PDF.
+
+The framing is deterministic (`src/data/valence.ts`) and follows the tradition's own wording: present numbers, two repeats and complete lines are positive; missing numbers, four-or-more repeats and entirely empty lines are challenges; partial lines, three repeats, Driver/Destiny, Kua, remedies, cycles and name numbers are neutral. Summary sentences carry a framing too (`summaryValence`). Red is the tradition's framing of a pattern, not a fault in the person, and the page says so.

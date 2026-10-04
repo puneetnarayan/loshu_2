@@ -8,7 +8,7 @@ import type { Digit, OverlayModeId, Report } from '../loshu';
 import { CompareSection, CycleSection, ElementSection, FactsSection, FrequencySection, GemstoneSection, KeyNumbersSection, KuaSection, NameSection, PlanetSection, RemedySection } from './AdvancedExtras';
 import { CellDetail, GridView } from './GridView';
 import type { GridLayer, Orientation } from './GridView';
-import { Derivation, EvidenceLabel, Rider, RuleDerivation, RuleRecord, Section, StatusTag, TableWrap, VerificationBadge } from './shared';
+import { ColourGuide, Derivation, EvidenceLabel, readingClass, Rider, RuleDerivation, RuleRecord, Section, StatusTag, TableWrap, ValenceTag, ruleValence, VerificationBadge } from './shared';
 
 interface Props {
   report: Report;
@@ -125,7 +125,11 @@ export function Advanced(p: Props) {
       </Section>
 
       <Section title="Interpretation (rule-based)">
-        {synthesis.summary.map((s) => <p key={s}>{s}</p>)}
+        <ColourGuide />
+        {synthesis.summary.map((s, i) => {
+          const v = synthesis.summaryValence[i];
+          return v ? <p key={s} className={readingClass(v)}><ValenceTag v={v} /> {s}</p> : <p key={s}>{s}</p>;
+        })}
         <h4>Primary patterns</h4>
         <TriggeredList items={synthesis.primary} />
         <h4>Secondary patterns</h4>
@@ -227,9 +231,9 @@ export function Advanced(p: Props) {
               {kinds.map(([k, label]) => {
                 const r = digitRule(d, k);
                 return (
-                  <div key={k} className={`rule-block${applies(k) ? ' applies' : ''}`}>
+                  <div key={k} className={`rule-block${applies(k) ? ` applies ${readingClass(ruleValence(r))}` : ''}`}>
                     <p><strong>{label}</strong>{applies(k) ? ' — applies in the selected mode' : ' — does not apply'}</p>
-                    <p>{r.advancedText}</p>
+                    <p>{applies(k) && <><ValenceTag v={ruleValence(r)} />{' '}</>}{r.advancedText}</p>
                   </div>
                 );
               })}
@@ -296,8 +300,8 @@ export function Advanced(p: Props) {
                     {lineLabel(l.def)} · {LINE_NAMES[l.def.id]?.name} · {LINE_STATE_TEXT[l.state]}
                   </summary>
                   <p>Digits {l.def.digits.join(', ')} at {l.positions.map((x) => x.label).join(', ')}. Condition for complete: all three counts ≥ 1. Condition for empty: all three counts = 0. Current: {l.presentDigits.length} of 3 present.</p>
-                  <p>{cr.advancedText}</p>
-                  <p>{er.advancedText}</p>
+                  <p className={l.state === 'complete' ? readingClass('positive') : undefined}>{l.state === 'complete' && <><ValenceTag v="positive" />{' '}</>}{cr.advancedText}</p>
+                  <p className={l.state === 'empty' ? readingClass('negative') : undefined}>{l.state === 'empty' && <><ValenceTag v="negative" />{' '}</>}{er.advancedText}</p>
                   <p><strong>Alternative namings / disagreements:</strong> {cr.knownDisagreements.join(' ')}</p>
                   <p className="muted small">Line naming here follows one popular convention; it is not mixed with other conventions.</p>
                 </details>
@@ -348,8 +352,8 @@ function TriggeredList({ items }: { items: Report['triggered'] }) {
   return (
     <ul className="plain">
       {items.map((t) => (
-        <li key={t.rule.id}>
-          <strong>{t.rule.title}</strong> <code>{t.rule.id}</code>
+        <li key={t.rule.id} className={readingClass(ruleValence(t.rule))}>
+          <ValenceTag v={ruleValence(t.rule)} /> <strong>{t.rule.title}</strong> <code>{t.rule.id}</code>
           <br />
           {t.rule.advancedText}
           <EvidenceLabel rule={t.rule} />

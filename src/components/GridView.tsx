@@ -2,7 +2,7 @@ import { DIGIT_KEYWORDS } from '../data/rules';
 import { GRID_LAYOUT, positionLabel, POSITIONS } from '../loshu';
 import type { Analysis, Digit, DigitStat } from '../loshu';
 import type { TriggeredRule } from '../loshu';
-import { Derivation, EvidenceLabel, StatusTag } from './shared';
+import { Derivation, EvidenceLabel, readingClass, StatusTag, ValenceTag, ruleValence } from './shared';
 
 export type GridLayer = 'raw' | 'overlay' | 'combined';
 export type Orientation = 'modern' | 'historical';
@@ -137,8 +137,9 @@ export function CellDetail({ digit, analysis, triggered, variant, orientation = 
         <p>No documented rule applies to this number in the current view.</p>
       ) : (
         shown.map((t) => (
-          <div key={t.rule.id} className="rule-block">
-            <p>{variant === 'basic' ? t.rule.basicText : t.rule.advancedText}</p>
+          <div key={t.rule.id} className={`rule-block ${variant === 'basic' || t.rule.category !== 'planetary' ? readingClass(ruleValence(t.rule)) : ''}`}>
+            <p>
+              <ValenceTag v={ruleValence(t.rule)} />{' '}{variant === 'basic' ? t.rule.basicText : t.rule.advancedText}</p>
             <EvidenceLabel rule={t.rule} />
             <Derivation>
               <ol>

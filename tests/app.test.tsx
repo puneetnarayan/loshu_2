@@ -271,6 +271,74 @@ describe('more optional readings in the page', () => {
   });
 });
 
+describe('interpretation colours', () => {
+  it('every coloured reading carries a visible text tag, and only interpretations are coloured', () => {
+    const { container } = render(<App />);
+    const readings = [...container.querySelectorAll('.reading')];
+    expect(readings.length).toBeGreaterThan(20);
+    for (const r of readings) {
+      const tag = r.querySelector('.vtag')?.textContent;
+      expect(['Positive', 'Neutral', 'Challenge'], r.textContent?.slice(0, 40)).toContain(tag);
+    }
+    // calculations, tables, the grid, riders and the verification badge are never coloured as readings
+    expect(container.querySelectorAll('table .reading, .lo-grid .reading, .verify .reading, .rider .reading, .record .reading')).toHaveLength(0);
+    const audit = screen.getByRole('heading', { level: 3, name: 'Calculation audit' }).closest('section')!;
+    expect(audit.querySelectorAll('.reading')).toHaveLength(0);
+    const facts = screen.getByRole('heading', { level: 3, name: 'Grid facts and line weights' }).closest('section')!;
+    expect(facts.querySelectorAll('.reading')).toHaveLength(0);
+  });
+  it('Advanced colours the summary sentences and the rule lists by framing', () => {
+    const { container } = render(<App />);
+    const sec = screen.getByRole('heading', { level: 3, name: 'Interpretation (rule-based)' }).closest('section')!;
+    expect(sec).toHaveTextContent(/Colour guide for the readings/);
+    expect(sec.querySelector('p.reading-positive')).toHaveTextContent(/strongest patterns/);
+    expect(sec.querySelector('p.reading-negative')).toHaveTextContent(/areas for reflection/);
+    const missing5 = [...container.querySelectorAll('li.reading-negative')].find((li) => li.textContent?.includes('NUM-5-MISSING'))!;
+    expect(missing5.querySelector('.vtag')).toHaveTextContent('Challenge');
+    const present1 = [...container.querySelectorAll('li.reading-positive')].find((li) => li.textContent?.includes('NUM-1-PRESENT'))!;
+    expect(present1.querySelector('.vtag')).toHaveTextContent('Positive');
+    const driver = [...container.querySelectorAll('li.reading-neutral')].find((li) => li.textContent?.includes('DRIVER-2'))!;
+    expect(driver.querySelector('.vtag')).toHaveTextContent('Neutral');
+  });
+  it('Basic colours present, repeated, missing, line and key-number readings', async () => {
+    const user = userEvent.setup();
+    const { container } = render(<App />);
+    await user.click(screen.getByRole('tab', { name: /Basic/ }));
+    expect(screen.getByText(/Colour guide for the readings/)).toBeInTheDocument();
+    const find = (cls: string, text: string) => [...container.querySelectorAll(`li.${cls}`)].find((li) => li.textContent?.includes(text));
+    expect(find('reading-positive', 'is conventionally associated') || find('reading-positive', 'Traditionally linked')).toBeTruthy();
+    expect(find('reading-negative', 'a missing 5 is read as an area for reflection')).toBeTruthy();
+    expect(find('reading-positive', 'This line is complete')).toBeTruthy();
+    expect(find('reading-negative', 'arrow of indecision')).toBeTruthy();
+    expect(find('reading-neutral', 'Your Driver number is 2')).toBeTruthy();
+    expect(find('reading-neutral', 'Two of the three numbers')).toBeTruthy();
+    // the audit table of the Basic tab stays plain
+    expect(container.querySelectorAll('table .reading')).toHaveLength(0);
+  });
+  it('the cell detail colours the selected number’s reading', async () => {
+    const user = userEvent.setup();
+    const { container } = render(<App />);
+    await user.click(screen.getByRole('button', { name: cellLabel(5) }));
+    const block = container.querySelector('.cell-detail .rule-block.reading-negative');
+    expect(block).not.toBeNull();
+    expect(block!.querySelector('.vtag')).toHaveTextContent('Challenge');
+  });
+  it('the print report uses the same colours and tags', async () => {
+    const user = userEvent.setup();
+    window.print = vi.fn(() => {
+      window.dispatchEvent(new Event('beforeprint'));
+    });
+    const { container } = render(<App />);
+    await user.click(screen.getByRole('button', { name: 'Print / Save as PDF' }));
+    const rep = container.querySelector('.print-report')!;
+    expect(rep.querySelectorAll('.reading-positive .vtag, .reading-negative .vtag, .reading-neutral .vtag').length).toBeGreaterThan(10);
+    expect(rep.querySelectorAll('table .reading')).toHaveLength(0);
+    act(() => {
+      window.dispatchEvent(new Event('afterprint'));
+    });
+  });
+});
+
 describe('Kua in the page', () => {
   it('shows both formulas for the default date and interprets none until a formula is chosen', async () => {
     const user = userEvent.setup();

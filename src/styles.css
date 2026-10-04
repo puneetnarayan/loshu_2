@@ -148,3 +148,30 @@ summary { cursor: pointer; font-weight: 600; }
 .brand { margin-top: 10px; border: 1px solid var(--soft-border); border-radius: 6px; padding: 6px 10px; }
 .brand summary { font-weight: 600; }
 
+
+/* Interpretation colouring: pastel green / yellow / red, always paired with a text tag (never colour alone). */
+:root {
+  --pos-bg: #e3f4e7; --pos-edge: #2f7d46;
+  --neu-bg: #fdf6d6; --neu-edge: #9a7b12;
+  --neg-bg: #fbe3e3; --neg-edge: #b13c3c;
+}
+.reading { border: 1px solid var(--soft-border); border-left-width: 8px; border-radius: 6px; padding: 8px 10px; color: var(--ink); }
+.reading-positive { background: var(--pos-bg); border-left-color: var(--pos-edge); }
+.reading-neutral { background: var(--neu-bg); border-left-color: var(--neu-edge); }
+.reading-negative { background: var(--neg-bg); border-left-color: var(--neg-edge); }
+p.reading { margin: 6px 0; }
+.plain li.reading { border: 1px solid var(--soft-border); border-left-width: 8px; }
+.plain li.reading-positive { border-left-color: var(--pos-edge); }
+.plain li.reading-neutral { border-left-color: var(--neu-edge); }
+.plain li.reading-negative { border-left-color: var(--neg-edge); }
+.rule-block.reading, .rule-block.applies.reading { padding: 8px 10px; margin: 6px 0; }
+.vtag { display: inline-block; font-size: 0.72rem; font-weight: 700; line-height: 1.2; padding: 1px 7px; border: 1.5px solid var(--border); border-radius: 4px; background: #fff; color: var(--ink); vertical-align: baseline; }
+.vtag-positive { border-color: var(--pos-edge); }
+.vtag-neutral { border-color: var(--neu-edge); }
+.vtag-negative { border-color: var(--neg-edge); }
+.colour-guide { margin: 6px 0 10px; }
+@media print { .print-report .reading { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+
+.rule-block.applies.reading-positive { background: var(--pos-bg); }
+.rule-block.applies.reading-neutral { background: var(--neu-bg); }
+.rule-block.applies.reading-negative { background: var(--neg-bg); }

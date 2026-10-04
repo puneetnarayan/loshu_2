@@ -9,6 +9,10 @@ Everything is computed in the browser; no backend, API key or analytics.
 
 The form opens with the name "Puneet Narayan" and the date 02-06-1970 (constants in `src/App.tsx`), so a reading is shown on load. The name is only a display label and is never used in a calculation. Reset clears both fields. Change or remove the constants to ship different defaults.
 
+## Reading colours
+
+Interpretations are tinted green (positive), yellow (neutral) or red (challenge or area for reflection), each with a text tag; calculations and other text are not coloured. See `docs/methodology.md`.
+
 ## Live results and the PDF report
 
 There is no Calculate button: the date is parsed on every keystroke and the reading updates as soon as a complete, valid date is present (errors appear once ten characters are entered or the field is left). **Report PDF** downloads `lo-shu-report.pdf`, a multi-page A4 report (grid, audit, eight lines, interpretation, optional readings with their riders, evidence, sources) built entirely in the browser with `pdf-lib` (loaded on demand). The file name and metadata never contain the name or date. **Print / Save as PDF** uses the browser's print dialog instead and can print characters the standard PDF fonts cannot show.
