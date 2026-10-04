@@ -174,8 +174,9 @@ class Writer {
   }
   /** One or more titled 3x3 grids side by side, wrapping to further rows when they do not fit. */
   grids(caption: string | undefined, size: 'large' | 'small', grids: GridSpec[]) {
-    const cw = size === 'large' ? 112 : 36;
-    const ch = size === 'large' ? 46 : 26;
+    // Square cells keep every grid proportionate.
+    const cw = size === 'large' ? 64 : 34;
+    const ch = cw;
     const gap = 14;
     const gw = cw * 3;
     const titleH = grids.some((g) => g.title) ? 13 : 0;
@@ -200,17 +201,18 @@ class Writer {
             const x = gx + k * cw;
             const y = top - titleH - (r + 1) * ch;
             this.page.drawRectangle({ x, y, width: cw, height: ch, color: TINT[c.tone].bg, borderColor: size === 'large' ? INK : TINT.accent.edge, borderWidth: size === 'large' ? 0.9 : 0.6 });
-            const fs = size === 'large' ? 15 : 9;
+            const fs = size === 'large' ? 20 : 9;
+            const subFs = size === 'large' ? 8.5 : 6.5;
             const main = this.safe(c.text);
             const lines = main.split('\n');
             const sub = c.sub ? this.safe(c.sub) : '';
-            const blockH = lines.length * fs * 1.15 + (sub ? 10 : 0);
+            const blockH = lines.length * fs * 1.15 + (sub ? subFs + 3 : 0);
             let ty = y + ch / 2 + blockH / 2 - fs * 0.95;
             for (const ln of lines) {
               this.page.drawText(ln, { x: x + cw / 2 - this.f.bold.widthOfTextAtSize(ln, fs) / 2, y: ty, size: fs, font: this.f.bold, color: INK });
               ty -= fs * 1.15;
             }
-            if (sub) this.page.drawText(sub, { x: x + cw / 2 - this.f.regular.widthOfTextAtSize(sub, 7.5) / 2, y: ty - 1, size: 7.5, font: this.f.regular, color: MUTED });
+            if (sub) this.page.drawText(sub, { x: x + cw / 2 - this.f.regular.widthOfTextAtSize(sub, subFs) / 2, y: ty - 1, size: subFs, font: this.f.regular, color: MUTED });
           }),
         );
       });
