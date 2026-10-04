@@ -1,7 +1,18 @@
 import type { Report } from '../loshu';
 import type { Extra } from '../data/schema';
 import { reportBlocks } from '../report/blocks';
+import { VALENCE_TAG } from '../data/valence';
+import type { Valence } from '../data/valence';
 import type { Block, Brand } from '../report/blocks';
+
+const tagged = (v: Valence | undefined, text: string) =>
+  v ? (
+    <>
+      <span className={`vtag vtag-${v}`}>{VALENCE_TAG[v]}</span> {text}
+    </>
+  ) : (
+    text
+  );
 
 /**
  * Printable report: renders the same block model as the PDF writer, so the two cannot drift apart.
@@ -22,8 +33,13 @@ function renderBlock(b: Block, i: number) {
     case 'h1': return <h1 key={i}>{b.text}</h1>;
     case 'h2': return <h2 key={i}>{b.text}</h2>;
     case 'h3': return <h3 key={i}>{b.text}</h3>;
-    case 'p': return <p key={i} className={b.style === 'note' ? 'note' : undefined}>{b.text}</p>;
-    case 'ul': return <ul key={i}>{b.items.map((t, j) => <li key={j}>{t}</li>)}</ul>;
+    case 'p': return <p key={i} className={b.valence ? `reading reading-${b.valence}` : b.style === 'note' ? 'note' : undefined}>{tagged(b.valence, b.text)}</p>;
+    case 'ul':
+      return (
+        <ul key={i}>
+          {b.items.map((t, j) => (typeof t === 'string' ? <li key={j}>{t}</li> : <li key={j} className={`reading reading-${t.valence}`}>{tagged(t.valence, t.text)}</li>))}
+        </ul>
+      );
     case 'table':
       return (
         <table key={i}>

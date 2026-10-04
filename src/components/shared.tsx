@@ -3,6 +3,8 @@ import type { ReactNode } from 'react';
 import { CONFIDENCE_LABELS, EVIDENCE_LABELS, FIDELITY_LABELS } from '../data/schema';
 import type { Confidence } from '../data/schema';
 import type { InterpretationRule } from '../data/schema';
+import { VALENCE_LEGEND, VALENCE_TAG, valenceOf } from '../data/valence';
+import type { Valence } from '../data/valence';
 import { resolveSources } from '../lookup';
 import type { Analysis, DigitStat } from '../loshu';
 
@@ -30,6 +32,22 @@ export function Rider({ level = 'low', children }: { level?: Confidence; childre
       <strong>{level === 'moderate' ? 'Note:' : `${c.short}:`}</strong>{' '}
       {children ?? c.rider}
     </aside>
+  );
+}
+
+/** Visible text tag for a coloured reading, so the meaning never depends on colour alone. */
+export function ValenceTag({ v }: { v: Valence }) {
+  return <span className={`vtag vtag-${v}`}>{VALENCE_TAG[v]}</span>;
+}
+
+export const readingClass = (v: Valence) => `reading reading-${v}`;
+export const ruleValence = valenceOf;
+
+export function ColourGuide() {
+  return (
+    <p className="colour-guide muted small">
+      <span className="vtag vtag-positive">Positive</span> <span className="vtag vtag-neutral">Neutral</span> <span className="vtag vtag-negative">Challenge</span> {VALENCE_LEGEND}
+    </p>
   );
 }
 
