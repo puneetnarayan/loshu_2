@@ -331,7 +331,9 @@ describe('interpretation colours', () => {
     const { container } = render(<App />);
     await user.click(screen.getByRole('button', { name: 'Print / Save as PDF' }));
     const rep = container.querySelector('.print-report')!;
-    expect(rep.querySelectorAll('.reading-positive .vtag, .reading-negative .vtag, .reading-neutral .vtag').length).toBeGreaterThan(10);
+    expect(rep.querySelectorAll('td.tone-positive, td.tone-neutral, td.tone-negative').length).toBeGreaterThan(10);
+    expect(rep.querySelectorAll('.pgrid .pcell').length).toBeGreaterThan(9);
+    expect(rep.querySelector('.plegend')).toBeTruthy();
     expect(rep.querySelectorAll('table .reading')).toHaveLength(0);
     act(() => {
       window.dispatchEvent(new Event('afterprint'));
