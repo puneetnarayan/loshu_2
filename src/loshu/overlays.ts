@@ -1,7 +1,10 @@
 import type { Digit, OverlayModeDef, OverlayModeId } from './types';
 
 export const KUA_UNAVAILABLE_REASON =
-  'Kua is not implemented. Its result depends on the solar-year boundary (Li Chun, around 3–5 February, which needs an exact time and time zone on those days), the post-1999 birth-year convention and a sex-specific formula. Those conventions could not be verified from primary sources in this project, so Kua is shown as unavailable instead of being guessed.';
+  'Kua is calculated and shown in its own section (Feng Shui, a different tradition). It is not added to the date-of-birth grid: no source describing that was verified, and its value depends on the formula chosen and on the 3–5 February Li Chun boundary.';
+
+/** Days on which the Indian pool rule does not add the Driver again (it is already among the date digits). */
+export const POOL_DAYS_WITHOUT_DRIVER: readonly number[] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20, 30];
 
 export const OVERLAY_MODES: readonly OverlayModeDef[] = [
   {
@@ -43,6 +46,17 @@ export const OVERLAY_MODES: readonly OverlayModeDef[] = [
     available: true,
     description:
       'Adds one occurrence each of the Driver and Destiny digits to the overlay layer (two additions; they stack if equal).',
+  },
+  {
+    id: 'dob-indian-pool',
+    label: 'DOB + Driver/Destiny by the Indian pool rule',
+    addsDriver: true,
+    addsDestiny: true,
+    driverUnlessInDay: true,
+    addsKua: false,
+    available: true,
+    description:
+      'Destiny is always added. Driver is added only if the day is not 1–9, 10, 20 or 30 (days on which it is already among the date digits). Low confidence: this rule appears in one search summary and in a reviewed desktop app; many guides add the Driver in every case.',
   },
   {
     id: 'dob-driver-destiny-kua',

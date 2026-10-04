@@ -1,4 +1,5 @@
 import { LINE_NAMES } from '../data/rules';
+import { FREQUENCY_RANGE, patternFrequencies } from '../lookup';
 import type { Digit, Report } from '../loshu';
 import { lineLabel } from '../loshu';
 import { CellDetail, GridView } from './GridView';
@@ -11,12 +12,16 @@ interface Props {
 }
 
 export function Basic({ report, selected, onSelect }: Props) {
+  const lineName = (id: string) => LINE_NAMES[id]?.name;
   const { analysis: a, triggered, synthesis, checks } = report;
   const present = triggered.filter((t) => t.rule.category === 'number');
   const repeated = triggered.filter((t) => t.rule.category === 'repetition');
   const missing = triggered.filter((t) => t.rule.category === 'missing-number');
   const complete = triggered.filter((t) => t.rule.category === 'line');
   const empty = triggered.filter((t) => t.rule.category === 'empty-line');
+  const partialTiers = triggered.filter((t) => t.rule.category === 'partial-line');
+  const keyNumbers = triggered.filter((t) => t.rule.category === 'driver' || t.rule.category === 'destiny');
+  const frequencies = patternFrequencies(a);
   const suggestions = [...new Set([...missing, ...empty, ...repeated, ...complete].map((t) => t.rule.reflectionSuggestion))];
 
   return (
@@ -38,10 +43,11 @@ export function Basic({ report, selected, onSelect }: Props) {
 
       <Section title="2. How Your Grid Was Calculated">
         <ol>
-          <li>Your date is read as day, month, year: <strong>{a.dob.normalised}</strong>.</li>
-          <li>Its digits are: <strong>{a.audit.allDigits.join(', ')}</strong>.</li>
+          <li>Your date is read as day, month, year:{' '}<strong>{a.dob.normalised}</strong>.</li>
+          <li>Its digits are:{' '}<strong>{a.audit.allDigits.join(', ')}</strong>.</li>
           <li>
-            Zeros are left out{a.audit.zerosExcluded > 0 ? ` (${a.audit.zerosExcluded} removed)` : ' (there were none)'}, leaving: <strong>{a.audit.nonZeroDigits.join(', ')}</strong>.
+            {`Zeros are left out${a.audit.zerosExcluded > 0 ? ` (${a.audit.zerosExcluded} removed)` : ' (there were none)'}, leaving: `}
+            <strong>{a.audit.nonZeroDigits.join(', ')}</strong>.
           </li>
           <li>Each remaining digit is counted and placed in its fixed spot in the grid.</li>
         </ol>
@@ -66,7 +72,7 @@ export function Basic({ report, selected, onSelect }: Props) {
       </Section>
 
       <Section title="3. Numbers Present">
-        <p>Numbers that appear at least once: <strong>{a.audit.presentSet.join(', ') || 'none'}</strong>.</p>
+        <p>Numbers that appear at least once:{' '}<strong>{a.audit.presentSet.join(', ') || 'none'}</strong>.</p>
         {present.length === 0 && <p>No documented rule applies.</p>}
         <ul className="plain">
           {present.map((t) => (
@@ -84,12 +90,13 @@ export function Basic({ report, selected, onSelect }: Props) {
         ) : (
           <>
             <p>
-              Numbers that appear more than once: <strong>{a.audit.repeatedSet.map((d) => `${d} (×${a.audit.rawCounts[d]})`).join(', ')}</strong>. More repeats do not simply mean more benefit; the tradition describes both strengths and possible excess. The tradition reads two, three and four-or-more repeats differently (strengthened, then excessive, then dominant), so each is explained separately below.
+              Numbers that appear more than once:{' '}<strong>{a.audit.repeatedSet.map((d) => `${d} (×${a.audit.rawCounts[d]})`).join(', ')}</strong>
+              . More repeats do not simply mean more benefit; the tradition describes both strengths and possible excess. The tradition reads two, three and four-or-more repeats differently (strengthened, then excessive, then dominant), so each is explained separately below.
             </p>
             <ul className="plain">
               {repeated.map((t) => (
                 <li key={t.rule.id}>
-                  <strong>{t.rule.requiredCounts[0]?.digit}</strong>: {t.rule.basicText}
+                  <strong>{t.rule.requiredCounts[0]?.digit}</strong>:{' '}{t.rule.basicText}
                   <RuleDerivation rule={t.rule} why={t.why} />
                 </li>
               ))}
@@ -104,14 +111,15 @@ export function Basic({ report, selected, onSelect }: Props) {
         ) : (
           <>
             <p>
-              Numbers that do not appear: <strong>{a.audit.missingSet.join(', ')}</strong>. A missing number is a prompt for reflection in this tradition. It does not mean you lack a talent, quality or opportunity.
+              Numbers that do not appear:{' '}<strong>{a.audit.missingSet.join(', ')}</strong>
+              . A missing number is a prompt for reflection in this tradition. It does not mean you lack a talent, quality or opportunity.
             </p>
             <ul className="plain">
               {missing.map((t) => (
                 <li key={t.rule.id}>
-                  <strong>{t.rule.requiredCounts[0]?.digit}</strong>: {t.rule.basicText}
+                  <strong>{t.rule.requiredCounts[0]?.digit}</strong>:{' '}{t.rule.basicText}
                   <br />
-                  <span className="muted">Idea to try: {t.rule.reflectionSuggestion}</span>
+                  <span className="muted">Idea to try:{' '}{t.rule.reflectionSuggestion}</span>
                   <RuleDerivation rule={t.rule} why={t.why} />
                 </li>
               ))}
@@ -130,7 +138,7 @@ export function Basic({ report, selected, onSelect }: Props) {
               const line = a.lines.find((l) => l.def.id === t.rule.requiredLines[0]?.lineId)!;
               return (
                 <li key={t.rule.id}>
-                  <strong>{lineLabel(line.def)}</strong> · {LINE_NAMES[line.def.id]?.name}: {t.rule.basicText}
+                  <strong>{lineLabel(line.def)}</strong> · {lineName(line.def.id)}:{' '}{t.rule.basicText}
                   <EvidenceLabel rule={t.rule} />
                   <RuleDerivation rule={t.rule} why={t.why} />
                 </li>
@@ -150,7 +158,7 @@ export function Basic({ report, selected, onSelect }: Props) {
               const line = a.lines.find((l) => l.def.id === t.rule.requiredLines[0]?.lineId)!;
               return (
                 <li key={t.rule.id}>
-                  <strong>{lineLabel(line.def)}</strong> · {LINE_NAMES[line.def.id]?.name}: {t.rule.basicText}
+                  <strong>{lineLabel(line.def)}</strong> · {lineName(line.def.id)}:{' '}{t.rule.basicText}
                   <EvidenceLabel rule={t.rule} />
                   <RuleDerivation rule={t.rule} why={t.why} />
                 </li>
@@ -158,10 +166,20 @@ export function Basic({ report, selected, onSelect }: Props) {
             })}
           </ul>
         )}
-        {a.partialLineIds.length > 0 && (
-          <p className="muted">
-            {a.partialLineIds.length} other line{a.partialLineIds.length === 1 ? ' has' : 's have'} one or two of their numbers. We found no documented reading for that situation, so we do not make one up.
-          </p>
+        {partialTiers.length > 0 && (
+          <>
+            <h4>Partly present lines</h4>
+            <p className="muted">Some guides grade a line by how many of its three numbers appear: two is moderate, one is weak. They do not read which numbers those are, so neither do we.</p>
+            <ul className="plain">
+              {partialTiers.map((t) => (
+                <li key={t.rule.id}>
+                  <strong>{lineLabel(a.lines.find((l) => l.def.id === t.rule.requiredLines[0]?.lineId)!.def)}</strong> · {lineName(t.rule.requiredLines[0]!.lineId)}:{' '}{t.rule.basicText}
+                  <EvidenceLabel rule={t.rule} />
+                  <RuleDerivation rule={t.rule} why={t.why} />
+                </li>
+              ))}
+            </ul>
+          </>
         )}
       </Section>
 
@@ -169,6 +187,26 @@ export function Basic({ report, selected, onSelect }: Props) {
         {synthesis.summary.map((s) => (
           <p key={s}>{s}</p>
         ))}
+        <h4>Your two key numbers</h4>
+        <ul className="plain">
+          {keyNumbers.map((t) => (
+            <li key={t.rule.id}>
+              {t.rule.basicText}
+              <EvidenceLabel rule={t.rule} />
+              <RuleDerivation rule={t.rule} why={t.why} />
+            </li>
+          ))}
+        </ul>
+        <h4>How common is your pattern?</h4>
+        <p>
+          {`Out of all ${FREQUENCY_RANGE.dates.toLocaleString('en-GB')} calendar dates from ${FREQUENCY_RANGE.from.slice(0, 4)} to ${FREQUENCY_RANGE.to.slice(0, 4)}, the share that show the same pattern as yours:`}
+        </p>
+        <ul>
+          {frequencies.map((f) => (
+            <li key={f.key}>{f.label}:{' '}<strong>{f.percent.toFixed(2)}%</strong>{' '}of dates</li>
+          ))}
+        </ul>
+        <p className="muted small">A common pattern is not special and a rare one is not meaningful in itself. This is arithmetic about calendars, not about people.</p>
         <Derivation>
           <p>This summary is built only from the rules that matched your date:</p>
           <ul>

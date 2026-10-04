@@ -4,10 +4,10 @@ const GLOSSARY: Array<[string, string]> = [
   ['Lo Shu Grid', 'A 3×3 magic square (4 9 2 / 3 5 7 / 8 1 6) used in numerology as a fixed map onto which birth-date digits are placed.'],
   ['Magic square', 'A square of numbers where every row, column and diagonal has the same sum. Here the sum is 15 (a mathematical fact).'],
   ['Raw DOB layer', 'Only the non-zero digits of the full date of birth in DD-MM-YYYY. Always kept separate from overlays.'],
-  ['Overlay', 'Optional extra numbers (Driver, Destiny) counted in a separate layer when a mode is selected. They never rewrite the raw digits.'],
+  ['Overlay', 'Optional extra numbers (Driver, Destiny) counted in a separate layer when a mode is selected. They never rewrite the raw digits. One mode follows the Indian pool rule: Destiny always, Driver unless the day is 1–9, 10, 20 or 30.'],
   ['Driver (Moolank, Birth Number)', 'The digits of the day of birth added and reduced to a single digit 1–9. Month and year are not used.'],
   ['Destiny (Bhagyank, Conductor)', 'All digits of the full date added and reduced to a single digit 1–9. Master numbers are not preserved.'],
-  ['Kua', 'A Feng Shui number that depends on the solar year and sex-specific formulas. Shown as unavailable because those conventions could not be verified here.'],
+  ['Kua', 'A Feng Shui (Eight Mansions) number from the birth year and one of two traditional formulas. It is shown in its own optional section, never added to the grid. The year starts at Li Chun (3, 4 or 5 February), so births on those days show both candidates.'],
   ['Present / Repeated / Missing', 'Present: count of at least 1. Repeated: count of 2 or more. Missing: count of 0.'],
   ['Line, arrow, plane', 'Any of the eight straight lines of three cells (3 rows, 3 columns, 2 diagonals). Names such as "mental plane" or "arrow of determination" are traditional labels that differ between sources.'],
   ['Complete / partial / empty line', 'Complete: all three digits present. Empty: all three missing. Partial: one or two present.'],
@@ -27,6 +27,8 @@ export function HelpPanel({ open, onToggle }: { open: boolean; onToggle: () => v
       {open && (
         <div id={id} className="panel help-body" role="region" aria-label="About this tab">
           <h2>About the Lo Shu Grid tab</h2>
+          {(
+            <>
           <ol>
             <li><strong>What the grid is.</strong> A 3×3 magic square from Chinese tradition, used in numerology as a fixed layout: 4 9 2 / 3 5 7 / 8 1 6. Every line of three adds to 15.</li>
             <li><strong>What this does.</strong> It places the digits of a date of birth onto that grid, counts them, finds missing, repeated and complete lines, and shows what the tradition says, with sources.</li>
@@ -48,6 +50,8 @@ export function HelpPanel({ open, onToggle }: { open: boolean; onToggle: () => v
               </div>
             ))}
           </dl>
+            </>
+          )}
         </div>
       )}
     </div>

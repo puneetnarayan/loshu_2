@@ -15,7 +15,7 @@ export interface Unsupported {
 
 export interface AuditEntry {
   ruleId: string;
-  tier: 'primary' | 'secondary' | 'merged-duplicate';
+  tier: 'primary' | 'secondary' | 'context' | 'merged-duplicate';
   included: boolean;
   why: string[];
   note: string;
@@ -24,6 +24,8 @@ export interface AuditEntry {
 export interface Synthesis {
   primary: TriggeredRule[];
   secondary: TriggeredRule[];
+  /** Key numbers and optional readings (Driver/Destiny, planets, elements, remedies, cycle, name). */
+  context: TriggeredRule[];
   duplicatesRemoved: Array<{ removed: string; keptAs: string }>;
   reinforcing: Group[];
   conflicts: Group[];
@@ -67,6 +69,7 @@ export function synthesise(triggered: TriggeredRule[], a: Analysis): Synthesis {
   // 5. Primary vs secondary.
   const primary = kept.filter((t) => t.rule.priority === 1);
   const secondary = kept.filter((t) => t.rule.priority === 2);
+  const context = kept.filter((t) => t.rule.priority === 3);
 
   // 3–4. Reinforcing / conflicting by shared project theme tags.
   const byTheme = new Map<string, TriggeredRule[]>();
@@ -101,8 +104,8 @@ export function synthesise(triggered: TriggeredRule[], a: Analysis): Synthesis {
   const partial = a.lines.filter((l) => l.state === 'partial');
   if (partial.length > 0) {
     unsupported.push({
-      subject: `Partially populated lines (${partial.map((l) => l.def.digits.join('–')).join(', ')})`,
-      reason: 'No documented rule covers lines with one or two of their three digits, so none is applied.',
+      subject: `Digit-specific readings for partial lines (${partial.map((l) => l.def.digits.join('–')).join(', ')})`,
+      reason: 'Partial lines are read only by how many of their three digits are present (generic moderate/weak tiers). No source gave readings that depend on which digits are present.',
     });
   }
   const repeated = a.digits.filter((d) => d.combinedCount >= 2);
@@ -118,7 +121,7 @@ export function synthesise(triggered: TriggeredRule[], a: Analysis): Synthesis {
       reason: 'No documented rule was verified for these interactions. Overlays only change counts; no extra interpretation is added.',
     });
   }
-  unsupported.push({ subject: 'Kua number', reason: a.kua.reason });
+  unsupported.push({ subject: 'Kua as a grid overlay', reason: a.kua.reason });
   const matchedDigits = new Set(kept.flatMap((t) => [...t.rule.requiredDigits, ...t.rule.requiredCounts.map((c) => c.digit)]));
   if (kept.length === 0 || matchedDigits.size === 0) {
     unsupported.push({ subject: 'Whole chart', reason: 'No documented rule applies to this input.' });
@@ -136,6 +139,19 @@ export function synthesise(triggered: TriggeredRule[], a: Analysis): Synthesis {
   if (reflectPrimary.length > 0) {
     summary.push(`The tradition offers these as areas for reflection rather than fixed weaknesses: ${listJoin(reflectPrimary)}.`);
   }
+  const partialPhrases = secondary.filter((t) => t.rule.category === 'partial-line').map((t) => t.rule.summaryPhrase);
+  if (partialPhrases.length > 0) {
+    summary.push(`Partly formed lines (generic tiers): ${listJoin(partialPhrases)}.`);
+  }
+  const phrases = (cats: string[]) => context.filter((t) => cats.includes(t.rule.category)).map((t) => t.rule.summaryPhrase);
+  const keyNumbers = phrases(['driver', 'destiny']);
+  if (keyNumbers.length > 0) summary.push(`Key numbers: ${listJoin(keyNumbers)}.`);
+  const planets = phrases(['planet-profile']);
+  if (planets.length > 0) summary.push(`Planetary view (low confidence): ${listJoin(planets)}.`);
+  const els = phrases(['element']);
+  if (els.length > 0) summary.push(`Element view (low confidence): ${listJoin(els)}.`);
+  const cyc = phrases(['cycle']);
+  if (cyc.length > 0) summary.push(`Cycle (very low confidence, forecast-style): ${listJoin(cyc)}.`);
   if (reinforcing.length > 0) {
     summary.push(`Reinforcing themes: ${listJoin(reinforcing.map((g) => g.theme))}.`);
   }
@@ -152,13 +168,15 @@ export function synthesise(triggered: TriggeredRule[], a: Analysis): Synthesis {
   const audit: AuditEntry[] = [
     ...kept.map((t): AuditEntry => ({
       ruleId: t.rule.id,
-      tier: t.rule.priority === 1 ? 'primary' : 'secondary',
+      tier: t.rule.priority === 1 ? 'primary' : t.rule.priority === 2 ? 'secondary' : 'context',
       included: true,
       why: t.why,
       note:
         t.rule.priority === 1
           ? 'Primary: a complete or empty line, a repeated number or a missing number.'
-          : 'Secondary: supporting detail (a present number or optional association).',
+          : t.rule.priority === 2
+            ? 'Secondary: supporting detail (a present number, a partly formed line or an association).'
+            : 'Context: a key number or an optional reading (low confidence unless stated).',
     })),
     ...duplicatesRemoved.map((d): AuditEntry => ({
       ruleId: d.removed,
@@ -169,5 +187,5 @@ export function synthesise(triggered: TriggeredRule[], a: Analysis): Synthesis {
     })),
   ];
 
-  return { primary, secondary, duplicatesRemoved, reinforcing, conflicts, unsupported, summary, audit };
+  return { primary, secondary, context, duplicatesRemoved, reinforcing, conflicts, unsupported, summary, audit };
 }

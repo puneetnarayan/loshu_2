@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { RULES } from '../src/data/rules';
+import { RULES } from '../src/data/catalogue';
 import { SOURCES, getSource } from '../src/data/sources';
 import type { InterpretationRule } from '../src/data/schema';
 import { validateCatalogue } from '../src/data/validate';
@@ -14,10 +14,22 @@ describe('source and rule validation', () => {
   it('the shipped catalogue is valid', () => {
     expect(validateCatalogue(RULES, SOURCES)).toEqual([]);
   });
-  it('has 45 number rules (present, missing, three repetition tiers), 16 line rules and 9 planetary rules with unique ids', () => {
-    expect(RULES.filter((r) => ['number', 'missing-number', 'repetition'].includes(r.category))).toHaveLength(45);
-    expect(RULES.filter((r) => ['line', 'empty-line'].includes(r.category))).toHaveLength(16);
-    expect(RULES.filter((r) => r.category === 'planetary')).toHaveLength(9);
+  it('has the expected rule counts per category and unique ids', () => {
+    const n = (...c: string[]) => RULES.filter((r) => c.includes(r.category)).length;
+    expect(n('number', 'missing-number', 'repetition')).toBe(45); // present, missing, three repetition tiers
+    expect(n('line', 'empty-line')).toBe(16);
+    expect(n('partial-line')).toBe(16); // 8 lines x (2 of 3, 1 of 3)
+    expect(n('planetary')).toBe(9);
+    expect(n('driver')).toBe(9);
+    expect(n('destiny')).toBe(9);
+    expect(n('planet-profile')).toBe(18);
+    expect(n('element')).toBe(10);
+    expect(n('remedy')).toBe(21); // 9 missing + repeated 1, 4, 5 + 9 gemstones
+    expect(n('relation')).toBe(4);
+    expect(n('cycle')).toBe(9);
+    expect(n('name')).toBe(27);
+    expect(n('kua')).toBe(8);
+    expect(RULES).toHaveLength(201);
     expect(new Set(RULES.map((r) => r.id)).size).toBe(RULES.length);
   });
   it('covers every digit with present/missing/repeated and every line with complete/empty', () => {
@@ -93,18 +105,25 @@ describe('rule matching on the 23-11-1994 fixture', () => {
   const a = analyse(dobOf('23-11-1994'));
   const triggered = evaluateRules(RULES, a);
   it('triggers exactly the expected rules (hand-derived)', () => {
-    // present 1,2,3,4,9; missing 5,6,7,8; repeated 1,9; complete line 492.
+    // present 1,2,3,4,9; missing 5,6,7,8; 1 appears 3 times, 9 twice; 492 complete.
+    // Partial lines: 438 and 951 have 2 of 3; 357, 816, 276, 456, 258 have 1 of 3. Driver 5, Destiny 3.
     const expected = [
       ...[1, 2, 3, 4, 9].map((d) => `NUM-${d}-PRESENT`),
       ...[5, 6, 7, 8].map((d) => `NUM-${d}-MISSING`),
       'NUM-1-REPEATED-3', 'NUM-9-REPEATED-2', 'LINE-H-492-COMPLETE',
+      'LINE-V-438-PARTIAL-2', 'LINE-V-951-PARTIAL-2',
+      'LINE-H-357-PARTIAL-1', 'LINE-H-816-PARTIAL-1', 'LINE-V-276-PARTIAL-1', 'LINE-D-456-PARTIAL-1', 'LINE-D-258-PARTIAL-1',
+      'DRIVER-5', 'DESTINY-3',
     ];
     expect(ids(triggered).sort()).toEqual(expected.sort());
   });
   it('does not trigger planetary rules unless enabled', () => {
     expect(ids(triggered).some((i) => i.startsWith('PLANET'))).toBe(false);
     const withPlanets = evaluateRules(RULES, a, { planetary: true });
-    expect(ids(withPlanets).filter((i) => i.startsWith('PLANET')).sort()).toEqual(['PLANET-1', 'PLANET-2', 'PLANET-3', 'PLANET-4', 'PLANET-9']);
+    // associations for present digits; emphasised planets (1 and 9 repeated); absent planets (5, 6, 7, 8 missing)
+    expect(ids(withPlanets).filter((i) => i.startsWith('PLANET')).sort()).toEqual(
+      ['PLANET-1', 'PLANET-2', 'PLANET-3', 'PLANET-4', 'PLANET-9', 'PLANETEMPH-1', 'PLANETEMPH-9', 'PLANETABS-5', 'PLANETABS-6', 'PLANETABS-7', 'PLANETABS-8'].sort(),
+    );
   });
   it('a present-once digit is not treated as repeated', () => {
     expect(ids(triggered).filter((i) => i.startsWith('NUM-2-REPEATED') || i.startsWith('NUM-4-REPEATED'))).toEqual([]);
@@ -138,7 +157,11 @@ describe('synthesis', () => {
     expect(ids(report.synthesis.primary).sort()).toEqual(
       ['LINE-H-492-COMPLETE', 'NUM-1-REPEATED-3', 'NUM-5-MISSING', 'NUM-6-MISSING', 'NUM-7-MISSING', 'NUM-8-MISSING', 'NUM-9-REPEATED-2'].sort(),
     );
-    expect(ids(report.synthesis.secondary).sort()).toEqual(['NUM-1-PRESENT', 'NUM-2-PRESENT', 'NUM-3-PRESENT', 'NUM-4-PRESENT', 'NUM-9-PRESENT']);
+    expect(ids(report.synthesis.secondary).sort()).toEqual(
+      ['NUM-1-PRESENT', 'NUM-2-PRESENT', 'NUM-3-PRESENT', 'NUM-4-PRESENT', 'NUM-9-PRESENT',
+       'LINE-V-438-PARTIAL-2', 'LINE-V-951-PARTIAL-2', 'LINE-H-357-PARTIAL-1', 'LINE-H-816-PARTIAL-1', 'LINE-V-276-PARTIAL-1', 'LINE-D-456-PARTIAL-1', 'LINE-D-258-PARTIAL-1'].sort(),
+    );
+    expect(ids(report.synthesis.context).sort()).toEqual(['DESTINY-3', 'DRIVER-5']);
   });
   it('finds reinforcing themes', () => {
     const themes = report.synthesis.reinforcing.map((g) => g.theme);
@@ -151,9 +174,9 @@ describe('synthesis', () => {
   });
   it('lists unsupported interpretations instead of filling gaps', () => {
     const subjects = report.synthesis.unsupported.map((u) => u.subject).join(' | ');
-    expect(subjects).toMatch(/Partially populated lines/);
+    expect(subjects).toMatch(/Digit-specific readings for partial lines/);
     expect(subjects).toMatch(/Digit-specific readings for exact counts/);
-    expect(subjects).toMatch(/Kua/);
+    expect(subjects).toMatch(/Kua as a grid overlay/);
     expect(subjects).not.toMatch(/Driver\/Destiny and Lo Shu lines/); // DOB-only: no overlay interaction note
     const o = buildReport(dob, 'dob-driver-destiny').synthesis.unsupported.map((u) => u.subject).join(' | ');
     expect(o).toMatch(/Driver\/Destiny and Lo Shu lines/);

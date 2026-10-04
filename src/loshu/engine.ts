@@ -1,4 +1,5 @@
-import type { InterpretationRule } from '../data/schema';
+import type { DerivedKind, Extra, InterpretationRule } from '../data/schema';
+import { relationOf } from './relations';
 import type { Analysis, Digit } from './types';
 
 export interface TriggeredRule {
@@ -13,10 +14,35 @@ function countsOf(a: Analysis): Record<Digit, number> {
   return out;
 }
 
+export type DerivedValues = Partial<Record<DerivedKind, Digit>>;
+
+export interface EvalOptions {
+  /** Backwards-compatible switch for the planetary extra. */
+  planetary?: boolean;
+  extras?: readonly Extra[];
+  /** Name numbers and the personal year. Driver and Destiny are always taken from the analysis. */
+  derived?: DerivedValues;
+}
+
+const KIND_LABEL: Record<DerivedKind, string> = {
+  driver: 'Driver',
+  destiny: 'Destiny',
+  expression: 'Expression number',
+  'soul-urge': 'Soul Urge number',
+  personality: 'Personality number',
+  'personal-year': 'Personal Year number',
+  kua: 'Kua number',
+};
+
 /** Returns the reasons if the rule matches, otherwise null. Pure and deterministic. */
-export function matchRule(rule: InterpretationRule, a: Analysis, opts: { planetary: boolean }): string[] | null {
-  if (rule.activation === 'planetary' && !opts.planetary) return null;
+export function matchRule(rule: InterpretationRule, a: Analysis, opts: EvalOptions = {}): string[] | null {
+  if (rule.activation !== 'default') {
+    const on = new Set<Extra>(opts.extras ?? []);
+    if (opts.planetary) on.add('planetary');
+    if (!on.has(rule.activation)) return null;
+  }
   const counts = countsOf(a);
+  const derived: DerivedValues = { driver: a.driver.value, destiny: a.destiny.value, ...opts.derived };
   const why: string[] = [];
   for (const d of rule.requiredDigits) {
     if (counts[d] < 1) return null;
@@ -34,7 +60,32 @@ export function matchRule(rule: InterpretationRule, a: Analysis, opts: { planeta
     if (!line) return null;
     const ok = l.state === 'not-complete' ? line.state !== 'complete' : line.state === l.state;
     if (!ok) return null;
+    if (l.presentCount !== undefined && line.presentDigits.length !== l.presentCount) return null;
     why.push(`Line ${line.def.digits.join('–')} is ${line.state} (digits present: ${line.presentDigits.join(', ') || 'none'}).`);
+  }
+  for (const c of rule.requiredDerived ?? []) {
+    const v = derived[c.kind];
+    if (v !== c.value) return null;
+    why.push(`${KIND_LABEL[c.kind]} is ${v}.`);
+  }
+  for (const c of rule.requiredRelations ?? []) {
+    const f = derived[c.from];
+    const t = derived[c.to];
+    if (f === undefined || t === undefined) return null;
+    const rel = relationOf(f, t);
+    if (rel !== c.relation) return null;
+    why.push(`In the table used, ${KIND_LABEL[c.from]} ${f} → ${KIND_LABEL[c.to]} ${t} is listed as ${rel}.`);
+  }
+  for (const c of rule.requiredElements ?? []) {
+    const row = a.elements.rows.find((r) => r.element === c.element);
+    if (!row) return null;
+    if (c.state === 'absent') {
+      if (row.count !== 0) return null;
+      why.push(`No ${c.element}-element digit (${row.digits.join(', ')}) is present.`);
+    } else {
+      if (!a.elements.dominant.includes(c.element)) return null;
+      why.push(`${c.element} has the highest element total (${row.count}; digits ${row.digits.join(', ')}).`);
+    }
   }
   return why;
 }
@@ -43,7 +94,7 @@ export function matchRule(rule: InterpretationRule, a: Analysis, opts: { planeta
 export function evaluateRules(
   rules: readonly InterpretationRule[],
   a: Analysis,
-  opts: { planetary: boolean } = { planetary: false },
+  opts: EvalOptions = {},
 ): TriggeredRule[] {
   const out: TriggeredRule[] = [];
   for (const rule of rules) {

@@ -1,3 +1,5 @@
+import type { ElementProfile } from './extras';
+
 export type Digit = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
 
 export type LineKind = 'horizontal' | 'vertical' | 'diagonal';
@@ -34,6 +36,7 @@ export type OverlayModeId =
   | 'dob-driver'
   | 'dob-destiny'
   | 'dob-driver-destiny'
+  | 'dob-indian-pool'
   | 'dob-driver-destiny-kua';
 
 export interface OverlayModeDef {
@@ -41,6 +44,8 @@ export interface OverlayModeDef {
   label: string;
   addsDriver: boolean;
   addsDestiny: boolean;
+  /** Pool rule: skip the Driver when the day is one of POOL_DAYS_WITHOUT_DRIVER. */
+  driverUnlessInDay?: boolean;
   addsKua: boolean;
   available: boolean;
   unavailableReason?: string;
@@ -77,6 +82,16 @@ export interface LineStat {
   state: LineState;
   /** Same measures on the raw DOB layer, independent of overlays. */
   rawState: LineState;
+  /** Sum of the combined counts of the three digits (how heavily the line is populated). */
+  weight: number;
+}
+
+export interface GridFacts {
+  centreCount: number;
+  activeCells: number;
+  totalCount: number;
+  heaviestLineIds: string[];
+  lightestLineIds: string[];
 }
 
 export interface CalculationAudit {
@@ -106,6 +121,8 @@ export interface Analysis {
   completeLineIds: string[];
   emptyLineIds: string[];
   partialLineIds: string[];
+  facts: GridFacts;
+  elements: ElementProfile;
 }
 
 export interface VerificationCheck {

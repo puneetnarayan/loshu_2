@@ -5,10 +5,13 @@ import { Advanced } from './components/Advanced';
 import { Basic } from './components/Basic';
 import { DateForm } from './components/DateForm';
 import { GridView, CellDetail } from './components/GridView';
-import type { GridLayer } from './components/GridView';
+import type { GridLayer, Orientation } from './components/GridView';
 import { HelpPanel } from './components/Help';
 import { PrintReport } from './components/PrintReport';
+import { reportBlocks } from './report/blocks';
 import { buildReport, parseDob } from './loshu';
+import { DEFAULT_EXTRAS } from './data/schema';
+import type { Extra } from './data/schema';
 import type { Digit, OverlayModeId } from './loshu';
 
 type Tab = 'basic' | 'advanced';
@@ -26,11 +29,18 @@ export function App() {
   const [tab, setTab] = useState<Tab>('advanced'); // Advanced is the default
   const [text, setText] = useState(DEFAULT_DOB_TEXT);
   const [name, setName] = useState(DEFAULT_NAME);
+  const [kuaFormula, setKuaFormula] = useState<'both' | 'male' | 'female'>('both');
   const [touched, setTouched] = useState(false);
   const [printing, setPrinting] = useState(false);
+  const [brand, setBrand] = useState({ business: '', contact: '', operator: '' });
+  const [pdfBusy, setPdfBusy] = useState(false);
+  const [pdfError, setPdfError] = useState<string | null>(null);
   const [mode, setMode] = useState<OverlayModeId>('dob-only');
   const [layer, setLayer] = useState<GridLayer>('raw');
-  const [planetary, setPlanetary] = useState(false);
+  const [extras, setExtras] = useState<Extra[]>([...DEFAULT_EXTRAS]); // Advanced shows every optional reading except gemstones by default
+  const [orientation, setOrientation] = useState<Orientation>('modern');
+  const [compareText, setCompareText] = useState('');
+  const asOf = useMemo(() => new Date(), []); // fixed for the session so the personal year is stable
   const [selected, setSelected] = useState<Digit | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
   const tabRefs = useRef<Record<Tab, HTMLButtonElement | null>>({ basic: null, advanced: null });
@@ -42,16 +52,21 @@ export function App() {
   const error = !parsed.ok && text.trim() !== '' && (text.trim().length >= 10 || touched) ? parsed.error : null;
 
   // Both tabs call the same engine. Basic is always DOB-only; Advanced uses the chosen overlay mode.
-  const basicReport = useMemo(() => (dob ? buildReport(dob, 'dob-only') : null), [dob]);
-  const advancedReport = useMemo(() => (dob ? buildReport(dob, mode, { planetary }) : null), [dob, mode, planetary]);
+  const basicReport = useMemo(() => (dob ? buildReport(dob, 'dob-only', { asOf }) : null), [dob, asOf]);
+  const advancedReport = useMemo(() => (dob ? buildReport(dob, mode, { extras, name, asOf, kuaFormula }) : null), [dob, mode, extras, name, asOf, kuaFormula]);
 
   const reset = () => {
     setText('');
     setName('');
+    setKuaFormula('both');
     setTouched(false);
+    setPdfError(null);
     setMode('dob-only');
     setLayer('raw');
-    setPlanetary(false);
+    setExtras([...DEFAULT_EXTRAS]);
+    setBrand({ business: '', contact: '', operator: '' });
+    setOrientation('modern');
+    setCompareText('');
     setSelected(null);
   };
   // The report component is mounted only while printing so it never duplicates the on-screen content.
@@ -65,6 +80,23 @@ export function App() {
       window.removeEventListener('afterprint', after);
     };
   }, []);
+
+  // Direct download: built entirely in the browser; the file name and metadata never contain the name or date.
+  const downloadReport = async () => {
+    if (!advancedReport) return;
+    setPdfBusy(true);
+    setPdfError(null);
+    try {
+      const generated = asOf.toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
+      const { downloadBytes, renderPdf } = await import('./pdf/renderPdf'); // loaded only when a PDF is requested
+      const bytes = await renderPdf(reportBlocks(advancedReport, { name, extras, compareText, generated, brand }));
+      downloadBytes(bytes, 'lo-shu-report.pdf');
+    } catch {
+      setPdfError('The PDF could not be created. Try “Print / Save as PDF” instead.');
+    } finally {
+      setPdfBusy(false);
+    }
+  };
 
   const changeMode = (m: OverlayModeId) => {
     setMode(m);
@@ -89,7 +121,7 @@ export function App() {
   };
 
   return (
-    <div className="app">
+    <div className="app" lang="en">
       <div className="screen-only">
       <header className="header">
         <h1>Lo Shu Grid Calculator</h1>
@@ -97,11 +129,11 @@ export function App() {
         <HelpPanel open={helpOpen} onToggle={() => setHelpOpen((o) => !o)} />
       </header>
 
-      <DateForm value={text} name={name} error={error} onChange={setText} onNameChange={setName} onBlur={() => setTouched(true)} onReset={reset} onReport={() => window.print()} canReport={dob !== null} />
+      <DateForm value={text} name={name} brand={brand} onBrand={setBrand} kuaFormula={kuaFormula} onKuaFormula={setKuaFormula} error={error} onChange={setText} onNameChange={setName} onBlur={() => setTouched(true)} onReset={reset} onReport={downloadReport} onPrint={() => window.print()} canReport={dob !== null} busy={pdfBusy} reportError={pdfError} />
 
       {dob && (
         <p className="prepared">
-          Reading for {name.trim() ? <strong>{name.trim()}</strong> : 'the date'} · born <strong>{dob.normalised}</strong>
+          Reading for{' '}{name.trim() ? <strong>{name.trim()}</strong> : 'the date'} · born{' '}<strong>{dob.normalised}</strong>
         </p>
       )}
 
@@ -142,8 +174,14 @@ export function App() {
             onMode={changeMode}
             layer={layer}
             onLayer={setLayer}
-            planetary={planetary}
-            onPlanetary={setPlanetary}
+            extras={extras}
+            onExtras={setExtras}
+            orientation={orientation}
+            onOrientation={setOrientation}
+            compareText={compareText}
+            onCompareText={setCompareText}
+            name={name}
+            asOf={asOf}
             selected={selected}
             onSelect={setSelected}
           />
@@ -157,7 +195,7 @@ export function App() {
       </div>
       {printing && advancedReport && (
         <div className="print-only">
-          <PrintReport report={advancedReport} name={name} planetary={planetary} />
+          <PrintReport report={advancedReport} name={name} extras={extras} compareText={compareText} brand={brand} />
         </div>
       )}
     </div>

@@ -1,22 +1,23 @@
 import { LINES, lineLabel, POSITIONS } from '../loshu/constants';
 import type { Digit } from '../loshu/types';
+import { FIDELITY_LABELS } from './schema';
 import type { InterpretationRule, SourceFidelity } from './schema';
 
-const REVIEWED = '2026-10-04';
-const VERSION = '1.0.0';
-const SCHOOL = 'Indian-style Lo Shu numerology (DOB digits, 3×3 grid)';
-const TRADITION = 'Popular Indian/Chinese-derived Lo Shu numerology as presented by online calculators';
-const NO_VALIDATION =
+export const REVIEWED = '2026-10-04';
+export const VERSION = '1.0.0';
+export const SCHOOL = 'Indian-style Lo Shu numerology (DOB digits, 3×3 grid)';
+export const TRADITION = 'Popular Indian/Chinese-derived Lo Shu numerology as presented by online calculators';
+export const NO_VALIDATION =
   'No credible controlled study identified in this project supports personality or life-event predictions from Lo Shu patterns. The closest empirical test found (Genovese, 2017, per a search summary; not opened) reported that birth numbers of Nobel Prize winners 1901–2010 did not differ from chance (p = 0.77). It tests birth numbers against one outcome, not Lo Shu grid claims. Readings can also feel accurate for reasons unrelated to validity (the Barnum/Forer effect).';
 const NUMEROLOGY_SOURCES = ['SRC-MEDIUM-1-TO-9', 'SRC-AFFIRMATIONFLOW-WHAT', 'SRC-PARAMARSH'];
 const PLANE_SOURCES = ['SRC-JCCHAUDHRY-PLANES', 'SRC-HOROSCOPERS-PLANES', 'SRC-OCCULTSCIENCE-PLANES', 'SRC-NUMEROLOGYBYNEHAA-PLANES'];
 const EMPTY_SOURCES = ['SRC-ASTROMEDHA-GRID', 'SRC-STARNUM-ARROWS'];
-const COMMON_LIMITS = [
+export const COMMON_LIMITS = [
   'Traditional symbolism, not a measured trait.',
   'Wording was written for this project from search-summary-level evidence; it is not a quotation of any source.',
 ];
 
-interface NumberData {
+export interface NumberData {
   keywords: string;
   themes: [string, string];
   planet: string;
@@ -35,7 +36,7 @@ interface NumberData {
   repeatPhrase: string;
 }
 
-const N: Record<Digit, NumberData> = {
+export const N: Record<Digit, NumberData> = {
   1: {
     keywords: 'independence, leadership and self-expression',
     themes: ['independence', 'initiative'],
@@ -209,6 +210,9 @@ const base = {
   evidenceClassification: 'traditional-unvalidated' as const,
   limitations: COMMON_LIMITS,
   activation: 'default' as const,
+  // Placeholders; withConfidence() below sets the real values from each rule's source fidelity.
+  confidence: 'low' as const,
+  confidenceReason: '',
 };
 
 const lc = (t: string) => t.charAt(0).toLowerCase() + t.slice(1).replace(/\.$/, '');
@@ -335,7 +339,7 @@ const numberRules: InterpretationRule[] = ([1, 2, 3, 4, 5, 6, 7, 8, 9] as Digit[
   ];
 });
 
-interface LineData {
+export interface LineData {
   name: string;
   alt?: string;
   meaning: string;
@@ -355,7 +359,7 @@ interface LineData {
   challenge: string;
 }
 
-const LINE_DATA: Record<string, LineData> = {
+export const LINE_DATA: Record<string, LineData> = {
   'H-492': {
     name: 'Mental plane',
     alt: 'Arrow of Intellect',
@@ -599,7 +603,20 @@ const planetRules: InterpretationRule[] = ([1, 2, 3, 4, 5, 6, 7, 8, 9] as Digit[
   summaryPhrase: `${N[d].planet} association (${d})`,
 }));
 
-export const RULES: readonly InterpretationRule[] = [...numberRules, ...lineRules, ...planetRules];
+/** Confidence follows source fidelity: only multi-summary agreement earns "moderate"; nothing is rated high. */
+export function withConfidence(r: InterpretationRule): InterpretationRule {
+  const fid = FIDELITY_LABELS[r.sourceFidelityStatus];
+  const moderate = r.sourceFidelityStatus === 'multiple-summaries-agree';
+  return {
+    ...r,
+    confidence: moderate ? 'moderate' : 'low',
+    confidenceReason: moderate
+      ? `${fid.short}. Still a traditional reading with no scientific validation.`
+      : `${fid.short}: ${fid.explanation}`,
+  };
+}
+
+export const CORE_RULES: readonly InterpretationRule[] = [...numberRules, ...lineRules, ...planetRules].map(withConfidence);
 
 /** Short display strings used by the grid cells (kept next to the rule text they summarise). */
 export const DIGIT_KEYWORDS: Record<Digit, string> = Object.fromEntries(

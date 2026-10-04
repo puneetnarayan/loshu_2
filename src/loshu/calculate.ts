@@ -1,5 +1,6 @@
 import { DIGITS, LINES, POSITIONS } from './constants';
-import { getMode, KUA_UNAVAILABLE_REASON, reduceToDigit } from './overlays';
+import { elementProfile } from './extras';
+import { getMode, KUA_UNAVAILABLE_REASON, POOL_DAYS_WITHOUT_DRIVER, reduceToDigit } from './overlays';
 import type {
   Analysis,
   CalculationAudit,
@@ -99,7 +100,8 @@ export function analyse(dob: ParsedDob, modeId: OverlayModeId = 'dob-only'): Ana
     overlayCounts[d] = 0;
     overlaySources[d] = [];
   }
-  if (mode.addsDriver) {
+  const addDriver = mode.addsDriver && !(mode.driverUnlessInDay && POOL_DAYS_WITHOUT_DRIVER.includes(dob.day));
+  if (addDriver) {
     overlayCounts[driver.value] += 1;
     overlaySources[driver.value].push('Driver');
   }
@@ -135,7 +137,11 @@ export function analyse(dob: ParsedDob, modeId: OverlayModeId = 'dob-only'): Ana
     missingDigits: def.digits.filter((d) => combined[d] === 0),
     state: lineState(def, combined),
     rawState: lineState(def, audit.rawCounts),
+    weight: def.digits.reduce((sum, d) => sum + combined[d], 0),
   }));
+  const weights = lines.map((l) => l.weight);
+  const maxW = Math.max(...weights);
+  const minW = Math.min(...weights);
 
   return {
     dob,
@@ -154,6 +160,14 @@ export function analyse(dob: ParsedDob, modeId: OverlayModeId = 'dob-only'): Ana
     completeLineIds: lines.filter((l) => l.state === 'complete').map((l) => l.def.id),
     emptyLineIds: lines.filter((l) => l.state === 'empty').map((l) => l.def.id),
     partialLineIds: lines.filter((l) => l.state === 'partial').map((l) => l.def.id),
+    facts: {
+      centreCount: combined[5],
+      activeCells: DIGITS.filter((d) => combined[d] > 0).length,
+      totalCount: DIGITS.reduce((s, d) => s + combined[d], 0),
+      heaviestLineIds: lines.filter((l) => l.weight === maxW).map((l) => l.def.id),
+      lightestLineIds: lines.filter((l) => l.weight === minW).map((l) => l.def.id),
+    },
+    elements: elementProfile(combined),
   };
 }
 
@@ -201,6 +215,11 @@ export function verifyAnalysis(a: Analysis): VerificationCheck[] {
       (l) =>
         (l.state !== 'complete' || l.presentDigits.length === 3) && (l.state !== 'empty' || l.missingDigits.length === 3),
     ),
+  );
+  add(
+    'line-weight',
+    'Each line weight equals the sum of the counts of its three digits',
+    a.lines.every((l) => l.weight === l.def.digits.map((d) => a.digits.find((s) => s.digit === d)!.combinedCount).reduce((x, y) => x + y, 0)),
   );
   add('driver-range', 'Driver is a single digit 1–9', a.driver.value >= 1 && a.driver.value <= 9);
   add('destiny-range', 'Destiny is a single digit 1–9', a.destiny.value >= 1 && a.destiny.value <= 9);

@@ -126,16 +126,228 @@ describe('live results', () => {
   });
 });
 
+describe('extra interpretations', () => {
+  const h3s = () => screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent);
+  it('Advanced shows every new section by default', () => {
+    render(<App />);
+    expect(h3s()).toEqual(
+      expect.arrayContaining([
+        'Driver and Destiny readings', 'How common is this pattern?', 'Grid facts and line weights', 'Planetary profile (optional)',
+        'Five elements (optional)', 'Reported remedies (optional)', 'Personal year cycle (optional, forecast style)',
+        'Name numbers (optional, Pythagorean)', 'Compare with another date (optional)', 'Kua number (optional, Feng Shui)',
+      ]),
+    );
+  });
+  it('shows visible riders: low for remedies/planets/elements, very low for cycle and name', () => {
+    const { container } = render(<App />);
+    const riders = [...container.querySelectorAll('aside.rider')];
+    const text = (re: RegExp) => riders.filter((r) => re.test(r.textContent ?? ''));
+    expect(text(/Low confidence.*Remedies were collected/s).length).toBeGreaterThan(0);
+    expect(text(/Low confidence.*digit-to-planet mapping/s).length).toBeGreaterThan(0);
+    expect(text(/Low confidence.*element of each number/s).length).toBeGreaterThan(0);
+    expect(text(/Very low confidence.*Forecast-style/s).length).toBeGreaterThan(0);
+    expect(text(/Very low confidence.*separate system/s).length).toBeGreaterThan(0);
+    // low-confidence rules also carry a chip that is text, not colour only
+    expect(container.querySelectorAll('.chip-low').length).toBeGreaterThan(0);
+    expect(container.querySelectorAll('.chip-very-low').length).toBeGreaterThan(0);
+  });
+  it('shows the hand-checked values for the defaults (name 56 -> 11 -> 2, personal year, elements)', () => {
+    render(<App />);
+    const name = screen.getByRole('heading', { level: 3, name: 'Name numbers (optional, Pythagorean)' }).closest('section')!;
+    expect(name).toHaveTextContent('56 → 11 → 2');
+    expect(name).toHaveTextContent('16 → 7');
+    expect(name).toHaveTextContent('40 → 4');
+    const cycle = screen.getByRole('heading', { level: 3, name: /Personal year cycle/ }).closest('section')!;
+    expect(cycle).toHaveTextContent(`Personal Year for ${new Date().getFullYear()}`);
+    const el = screen.getByRole('heading', { level: 3, name: 'Five elements (optional)' }).closest('section')!;
+    expect(el).toHaveTextContent('Most represented: metal');
+  });
+  it('switching an optional reading off removes its section', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByRole('checkbox', { name: /Reported remedies/ }));
+    expect(h3s()).not.toContain('Reported remedies (optional)');
+    expect(h3s()).toContain('Five elements (optional)');
+  });
+  it('compares with a second date live, using descriptive arithmetic only', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.type(screen.getByLabelText(/Second date of birth/), '23-11-1994');
+    const sec = screen.getByRole('heading', { level: 3, name: 'Compare with another date (optional)' }).closest('section')!;
+    expect(sec).toHaveTextContent('Present in both: 1, 2, 9.');
+    expect(sec).toHaveTextContent('Only in 02-06-1970: 6, 7.');
+    expect(sec).toHaveTextContent('Missing from both: 5, 8.');
+    expect(sec).toHaveTextContent(/No compatibility verdict is made/);
+  });
+  it('the historical mirror view redraws the grid without changing counts', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    const before = screen.getByRole('button', { name: cellLabel(2) }).getAttribute('aria-label')!.replace(/, [a-z ]+\./, '.');
+    await user.click(screen.getByRole('radio', { name: /Historical mirror/ }));
+    expect(screen.getByRole('group', { name: /historical mirror layout: 2 9 4/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: cellLabel(2) })).toHaveAccessibleName(/top left/);
+    expect(screen.getByRole('button', { name: cellLabel(2) }).getAttribute('aria-label')!.replace(/, [a-z ]+\./, '.')).toBe(before);
+    expect(screen.getAllByText(/Da Dai Liji/).length).toBeGreaterThan(0); // rider explains the source and its low confidence
+    const cells = [...document.querySelectorAll('.lo-grid .cell-digit')].map((c) => c.textContent);
+    expect(cells).toEqual(['2', '9', '4', '7', '5', '3', '6', '1', '8']);
+  });
+  it('Basic shows key numbers, partial-line tiers and how common the pattern is, with confidence labels', async () => {
+    const user = userEvent.setup();
+    const { container } = render(<App />);
+    await user.click(screen.getByRole('tab', { name: /Basic/ }));
+    expect(screen.getByRole('heading', { level: 4, name: 'Your two key numbers' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 4, name: 'How common is your pattern?' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 4, name: 'Partly present lines' })).toBeInTheDocument();
+    expect(screen.getByText(/Your Driver number is 2/)).toBeInTheDocument();
+    expect(screen.getByText(/Your Destiny number is 7/)).toBeInTheDocument();
+    expect(container.querySelectorAll('.chip-low').length).toBeGreaterThan(0);
+    expect(screen.queryByRole('heading', { name: /Reported remedies/ })).not.toBeInTheDocument(); // optional readings stay in Advanced
+  });
+});
+
+describe('more optional readings in the page', () => {
+  const h3s = () => screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent);
+  it('gemstones are off by default and, once switched on, show a very-low-confidence rider and the Driver pairing', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    expect(screen.getByRole('checkbox', { name: /Gemstones reported/ })).not.toBeChecked();
+    expect(h3s()).not.toContain('Gemstones reported for the Driver number (optional)');
+    await user.click(screen.getByRole('checkbox', { name: /Gemstones reported/ }));
+    const sec = screen.getByRole('heading', { level: 3, name: 'Gemstones reported for the Driver number (optional)' }).closest('section')!;
+    expect(sec).toHaveTextContent(/Very low confidence/);
+    expect(sec).toHaveTextContent(/jewellery retailers, who profit from sales/);
+    expect(sec).toHaveTextContent(/Driver 2 → pearl/); // 02-06-1970: Driver 2
+    expect(sec).toHaveTextContent(/do not buy a stone because of this/i);
+  });
+  it('shows the Driver–Destiny relation with its conflict warning (02-06-1970: Driver 2, Destiny 7 -> neutral)', () => {
+    render(<App />);
+    const sec = screen.getByRole('heading', { level: 3, name: 'Driver and Destiny readings' }).closest('section')!;
+    expect(sec).toHaveTextContent(/Driver and Destiny relation \(optional\)/);
+    expect(sec).toHaveTextContent(/row 8 lists 4 as both friendly and enemy/);
+    expect(sec).toHaveTextContent(/listed as neutral to your Driver number/);
+  });
+  it('shows 12 personal months and a descriptive year grid, each with a rider', () => {
+    render(<App />);
+    const sec = screen.getByRole('heading', { level: 3, name: /Personal year cycle/ }).closest('section')!;
+    const year = new Date().getFullYear();
+    expect(within(sec).getByRole('heading', { level: 4, name: `Personal month numbers for ${year}` })).toBeInTheDocument();
+    const table = within(sec).getAllByRole('table')[0]!;
+    expect(within(table).getAllByRole('row')).toHaveLength(13); // header + 12 months
+    expect(within(sec).getByRole('heading', { level: 4, name: `Year grid for ${year} (descriptive)` })).toBeInTheDocument();
+    expect(sec).toHaveTextContent(/no forecast is made/);
+    expect(sec).toHaveTextContent(/No meanings per number were found, so none are given/);
+  });
+  it('branding fields appear in the printed report only when filled, and are not stored', { timeout: 30000 }, async () => {
+    const user = userEvent.setup();
+    const setItem = vi.spyOn(Storage.prototype, 'setItem');
+    window.print = vi.fn(() => {
+      window.dispatchEvent(new Event('beforeprint'));
+    });
+    const { container } = render(<App />);
+    await user.click(screen.getByText('Report branding (optional)'));
+    await user.type(screen.getByLabelText('Business name'), 'Acme Readings');
+    await user.type(screen.getByLabelText('Prepared by'), 'A. Person');
+    await user.click(screen.getByRole('button', { name: 'Print / Save as PDF' }));
+    expect(container.querySelector('.print-report')!.textContent).toContain('Acme Readings · Prepared by A. Person');
+    expect(setItem).not.toHaveBeenCalled();
+    act(() => {
+      window.dispatchEvent(new Event('afterprint'));
+    });
+    await user.click(screen.getByRole('button', { name: 'Reset' }));
+    expect(screen.getByLabelText('Business name')).toHaveValue('');
+  });
+  it('the print report is rendered from the same blocks as the PDF (same section titles)', async () => {
+    const user = userEvent.setup();
+    window.print = vi.fn(() => {
+      window.dispatchEvent(new Event('beforeprint'));
+    });
+    const { container } = render(<App />);
+    await user.click(screen.getByRole('button', { name: 'Print / Save as PDF' }));
+    const titles = [...container.querySelectorAll('.print-report h2')].map((h) => h.textContent);
+    expect(titles).toEqual(['1. Grid', '2. Calculation audit', '3. The eight lines', '4. Interpretation (rule-based)', '5. Key numbers and how common the pattern is', '6. Optional readings', '7. Evidence and limitations', '8. Sources cited by the rules above']);
+    act(() => {
+      window.dispatchEvent(new Event('afterprint'));
+    });
+  });
+});
+
+describe('Kua in the page', () => {
+  it('shows both formulas for the default date and interprets none until a formula is chosen', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    const sec = () => screen.getByRole('heading', { level: 3, name: 'Kua number (optional, Feng Shui)' }).closest('section')!;
+    expect(sec()).toHaveTextContent('Born after Li Chun');
+    expect(sec()).toHaveTextContent(/Both formulas are shown and neither is interpreted/);
+    expect(sec()).toHaveTextContent('3 (east group: North, South, East, Southeast)'); // 02-06-1970: male 3 and female 3
+    await user.selectOptions(screen.getByLabelText(/Kua formula/), 'male');
+    expect(sec()).toHaveTextContent(/Kua 3 → east group/);
+    expect(sec()).toHaveTextContent('Low confidence');
+  });
+  it('withholds the reading on 3-5 February and shows both candidates', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    const input = screen.getByLabelText(/Date of birth \(DD-MM-YYYY\)/);
+    await user.clear(input);
+    await user.type(input, '04-02-1985');
+    await user.selectOptions(screen.getByLabelText(/Kua formula/), 'male');
+    const sec = screen.getByRole('heading', { level: 3, name: 'Kua number (optional, Feng Shui)' }).closest('section')!;
+    expect(sec).toHaveTextContent(/falls on 3, 4 or 5 February/);
+    expect(sec).toHaveTextContent(/withheld because the date falls on 3–5 February/);
+    expect(sec).toHaveTextContent('Before Li Chun');
+    expect(sec.textContent).not.toMatch(/Kua \d → /);
+  });
+  it('the Indian pool mode is offered with its low-confidence note and changes the combined counts', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    expect(screen.getByRole('radio', { name: /Indian pool rule/ })).toBeEnabled();
+    expect(screen.getAllByText(/Low confidence: this rule appears in one search summary/).length).toBeGreaterThan(0);
+    await user.click(screen.getByRole('radio', { name: /Indian pool rule/ }));
+    // 02-06-1970: day 2 -> no Driver; Destiny 7 added, so 7 appears twice
+    expect(screen.getByRole('button', { name: cellLabel(7) })).toHaveAccessibleName(/Appears 2 times/);
+    expect(screen.getByRole('button', { name: cellLabel(2) })).toHaveAccessibleName(/Appears 1 time/);
+  });
+});
+
 describe('PDF report', () => {
-  it('has a Report PDF button next to Reset, enabled only for a valid date', async () => {
+  it('has Report PDF and Print buttons next to Reset, enabled only for a valid date', async () => {
     const user = userEvent.setup();
     render(<App />);
     const pdf = screen.getByRole('button', { name: 'Report PDF' });
+    const print = screen.getByRole('button', { name: 'Print / Save as PDF' });
     const reset = screen.getByRole('button', { name: 'Reset' });
     expect(pdf).toBeEnabled();
+    expect(print).toBeEnabled();
     expect(pdf.parentElement).toBe(reset.parentElement);
+    expect(print.parentElement).toBe(reset.parentElement);
     await user.clear(screen.getByLabelText(/Date of birth \(DD-MM-YYYY\)/));
     expect(pdf).toBeDisabled();
+    expect(print).toBeDisabled();
+  });
+  it('Report PDF downloads a real PDF with a neutral file name, without network or storage', async () => {
+    const user = userEvent.setup();
+    const setItem = vi.spyOn(Storage.prototype, 'setItem');
+    const fetchSpy = vi.fn();
+    vi.stubGlobal('fetch', fetchSpy);
+    let blob: Blob | undefined;
+    URL.createObjectURL = vi.fn((b: Blob | MediaSource) => {
+      blob = b as Blob;
+      return 'blob:test';
+    });
+    URL.revokeObjectURL = vi.fn();
+    const names: string[] = [];
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (this: HTMLAnchorElement) {
+      names.push(this.download);
+    });
+    render(<App />);
+    await user.click(screen.getByRole('button', { name: 'Report PDF' }));
+    await vi.waitFor(() => expect(names).toEqual(['lo-shu-report.pdf']));
+    expect(blob!.type).toBe('application/pdf');
+    expect(blob!.size).toBeGreaterThan(5000);
+    expect(names[0]).not.toMatch(/1970|Puneet|Narayan/i);
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(setItem).not.toHaveBeenCalled();
+    click.mockRestore();
+    vi.unstubAllGlobals();
   });
   it('prints a complete report only while printing, with no storage, network or date in the title', async () => {
     const user = userEvent.setup();
@@ -148,18 +360,24 @@ describe('PDF report', () => {
     window.print = print;
     const { container } = render(<App />);
     expect(container.querySelector('.print-report')).toBeNull();
-    await user.click(screen.getByRole('button', { name: 'Report PDF' }));
+    await user.click(screen.getByRole('button', { name: 'Print / Save as PDF' }));
     expect(print).toHaveBeenCalledTimes(1);
     const report = container.querySelector('.print-report') as HTMLElement;
     expect(report).not.toBeNull();
     const text = report.textContent ?? '';
     expect(text).toMatch(/Prepared for Puneet Narayan/);
     expect(text).toMatch(/Date of birth 02-06-1970/);
-    for (const h of ['1. Grid', '2. Calculation audit', '3. The eight lines', '4. Interpretation (rule-based)', '5. Evidence and limitations', '6. Sources cited by the rules above']) expect(text).toContain(h);
+    for (const h of ['1. Grid', '2. Calculation audit', '3. The eight lines', '4. Interpretation (rule-based)', '5. Key numbers and how common the pattern is', '6. Optional readings', '7. Evidence and limitations', '8. Sources cited by the rules above']) expect(text).toContain(h);
     expect(text).toMatch(/2–7–6 is complete — Action plane/);
     expect(text).toMatch(/4–3–8 is entirely empty/);
     expect(text).toMatch(/Calculation verified/);
     expect(text).toMatch(/not scientifically validated/);
+    expect(text).toMatch(/Rider:/); // low-confidence riders are printed too
+    expect(text).toMatch(/Name numbers \(very low confidence\)/);
+    expect(text).toMatch(/Personal year cycle \(very low confidence\)/);
+    expect(text).toMatch(/Reported remedies \(low confidence\)/);
+    expect(text).toMatch(/Kua number \(low confidence\)/);
+    expect(text).toMatch(/Share of all 46,021 calendar dates/);
     expect(text).toMatch(/https:\/\//); // sources are listed with their URLs
     expect(text).not.toMatch(/\d+(\.\d+)?\s?%\s*(accura|confiden|match|likel)/i);
     // The default PDF file name comes from the page title; it must stay neutral and never be set from the date or name.
@@ -230,7 +448,7 @@ describe('results for 23-11-1994', () => {
     await enterDate(user, '23-11-1994');
     const kua = screen.getByRole('radio', { name: /Kua \(unavailable\)/ });
     expect(kua).toBeDisabled();
-    expect(screen.getAllByText(/could not be verified from primary sources/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/not added to the date-of-birth grid/).length).toBeGreaterThan(0);
   });
   it('overlay mode changes the combined view but the raw layer label and audit stay put', async () => {
     const user = userEvent.setup();

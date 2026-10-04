@@ -1,6 +1,7 @@
 import { useId } from 'react';
 import type { ReactNode } from 'react';
-import { EVIDENCE_LABELS, FIDELITY_LABELS } from '../data/schema';
+import { CONFIDENCE_LABELS, EVIDENCE_LABELS, FIDELITY_LABELS } from '../data/schema';
+import type { Confidence } from '../data/schema';
 import type { InterpretationRule } from '../data/schema';
 import { resolveSources } from '../lookup';
 import type { Analysis, DigitStat } from '../loshu';
@@ -21,6 +22,17 @@ export function StatusTag({ status, count }: { status: DigitStat['rawStatus']; c
   );
 }
 
+/** Visible warning shown wherever the confidence level is low. Text is plain, never colour-only. */
+export function Rider({ level = 'low', children }: { level?: Confidence; children?: ReactNode }) {
+  const c = CONFIDENCE_LABELS[level];
+  return (
+    <aside className={`rider rider-${level}`} role="note">
+      <strong>{level === 'moderate' ? 'Note:' : `${c.short}:`}</strong>{' '}
+      {children ?? c.rider}
+    </aside>
+  );
+}
+
 export function ExternalLink({ href, children }: { href: string; children: ReactNode }) {
   return (
     <a href={href} target="_blank" rel="noopener noreferrer external">
@@ -33,16 +45,23 @@ export function ExternalLink({ href, children }: { href: string; children: React
 export function EvidenceLabel({ rule }: { rule: InterpretationRule }) {
   const ev = EVIDENCE_LABELS[rule.evidenceClassification];
   const fid = FIDELITY_LABELS[rule.sourceFidelityStatus];
+  const conf = CONFIDENCE_LABELS[rule.confidence].short;
   return (
     <details className="evidence">
       <summary>
-        <span className="chip">{ev.short}</span> <span className="chip chip-alt">{fid.short}</span>
+        <span className="chip">{ev.short}</span>{' '}
+        <span className="chip chip-alt">{fid.short}</span>{' '}
+        <span className={`chip chip-${rule.confidence}`}>{conf}</span>
       </summary>
+      {rule.confidence !== 'moderate' && <Rider level={rule.confidence}>{rule.confidenceReason}</Rider>}
       <p>
         <strong>Scientific evidence:</strong> {ev.explanation}
       </p>
       <p>
         <strong>Source fidelity:</strong> {fid.explanation}
+      </p>
+      <p>
+        <strong>Confidence:</strong> {rule.confidenceReason}
       </p>
       <p>
         <strong>Validation note:</strong> {rule.empiricalValidationStatus}
@@ -51,10 +70,10 @@ export function EvidenceLabel({ rule }: { rule: InterpretationRule }) {
   );
 }
 
-export function Derivation({ title = 'How was this derived?', children }: { title?: string; children: ReactNode }) {
+export function Derivation({ title, children }: { title?: string; children: ReactNode }) {
   return (
     <details className="derive">
-      <summary>{title}</summary>
+      <summary>{title ?? 'How was this derived?'}</summary>
       <div className="derive-body">{children}</div>
     </details>
   );
@@ -100,6 +119,8 @@ export function RuleRecord({ rule }: { rule: InterpretationRule }) {
       <dd>{rule.potentialChallenge}</dd>
       <dt>Reflection</dt>
       <dd>{rule.reflectionSuggestion}</dd>
+      <dt>Confidence</dt>
+      <dd>{CONFIDENCE_LABELS[rule.confidence].short}. {rule.confidenceReason}</dd>
       <dt>Source agreement</dt>
       <dd>{rule.sourceAgreement}</dd>
       <dt>Source fidelity</dt>
@@ -137,7 +158,7 @@ export function VerificationBadge({ analysis, checks }: { analysis: Analysis; ch
     <div className={`verify ${all ? 'verify-ok' : 'verify-bad'}`} role="status">
       <strong>{all ? '✓ Calculation verified' : '✗ Calculation check failed'}</strong>{' '}
       <span>
-        ({passed}/{checks.length} arithmetic checks passed for {analysis.dob.normalised})
+        {`(${passed}/${checks.length} arithmetic checks passed for ${analysis.dob.normalised})`}
       </span>
       <details>
         <summary>What was checked?</summary>
