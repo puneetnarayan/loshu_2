@@ -1,5 +1,6 @@
 import { DIGITS, LINES, lineLabel } from '../loshu/constants';
 import { ELEMENT_DIGITS, ELEMENTS } from '../loshu/extras';
+import { KUA_GROUP_DIRECTIONS, kuaGroup } from '../loshu/kua';
 import type { Digit } from '../loshu/types';
 import type { Confidence, Element, Extra, InterpretationRule, SourceFidelity } from './schema';
 import { COMMON_LIMITS, DIGIT_PLANETS, LINE_DATA, N, NO_VALIDATION, REVIEWED, SCHOOL, TRADITION, VERSION } from './rules';
@@ -398,4 +399,37 @@ const names: InterpretationRule[] = (Object.keys(NAME_ROLE) as Array<keyof typeo
   ),
 );
 
-export const EXTRA_RULES: readonly InterpretationRule[] = [...partial, ...derived, ...planetProfile, ...elements, ...remedies, ...cycle, ...names];
+// ---------- 8. Kua number (Eight Mansions Feng Shui) ----------
+const kuaRules: InterpretationRule[] = ([1, 2, 3, 4, 6, 7, 8, 9] as Digit[]).map((k) => {
+  const group = kuaGroup(k);
+  const dirs = KUA_GROUP_DIRECTIONS[group].join(', ');
+  return mk({
+    id: `KUA-${k}`,
+    title: `Kua ${k} (${group} group)`,
+    category: 'kua',
+    subcategory: group,
+    school: 'Eight Mansions (Ba Zhai) Feng Shui',
+    tradition: 'Chinese Feng Shui',
+    sourceIds: ['SRC-KUA-FENGSHUI-FR', 'SRC-KUA-DIRECTIONS', 'SRC-KUA-CHARTS'],
+    sourceFidelityStatus: 'multiple-summaries-agree',
+    confidence: 'low',
+    confidenceReason:
+      'The formulas reproduce published chart values (checked for 1970, 1984, 1985 and 2005) and several summaries agree on the east/west group directions. Confidence is still low: sources differ on the year boundary (Li Chun versus Chinese New Year), 3–5 February depends on the exact moment of Li Chun, and the per-direction meanings (Sheng Qi, Tian Yi and so on) were not visible and are not used.',
+    ruleDescription: `Kua ${k} belongs to the ${group} life group, whose four auspicious directions are ${dirs}.`,
+    triggerConditions: `Kua = ${k} (formula chosen, birth date clear of the 3–5 February boundary) and Kua option enabled`,
+    requiredDerived: [{ kind: 'kua', value: k }],
+    calculationMethod: 'Solar year (Li Chun boundary) → last two digits reduced → male: 10−s before 2000, 9−s from 2000; female: s+5 before 2000, s+6 from 2000; 5 becomes 2 (male) or 8 (female).',
+    calculationExplanation: 'Pick the solar year from the Li Chun boundary, add the last two digits to one digit s, apply the male or female formula for the century, and map 5 to 2 or 8.',
+    basicText: `Kua ${k}: in Eight Mansions Feng Shui this belongs to the ${group} group, associated with the directions ${dirs}.`,
+    advancedText: `Kua ${k} → ${group} group; auspicious directions (group level): ${dirs}. This is Feng Shui, a different tradition from the Lo Shu digit grid.`,
+    knownDisagreements: [
+      'Some charts start the year at Chinese New Year instead of Li Chun, which can change the Kua of people born between about 4 February and the lunar new year.',
+      'Per-direction meanings are not used because they were not visible in the summaries.',
+    ],
+    exclusions: ['Not added to the Lo Shu grid; no source describing that was verified.', 'No house, bed or career advice is given.'],
+    reflectionSuggestion: 'Treat orientation advice as optional; it is unrelated to your Lo Shu grid.',
+    summaryPhrase: `Kua ${k} (${group} group)`,
+  }, 'kua');
+});
+
+export const EXTRA_RULES: readonly InterpretationRule[] = [...partial, ...derived, ...planetProfile, ...elements, ...kuaRules, ...remedies, ...cycle, ...names];

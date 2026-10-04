@@ -2,7 +2,7 @@ import { analyse } from './calculate';
 import { DIGITS, LINES } from './constants';
 import type { Digit, OverlayModeId } from './types';
 
-export const FREQUENCY_MODES: readonly OverlayModeId[] = ['dob-only', 'dob-driver', 'dob-destiny', 'dob-driver-destiny'];
+export const FREQUENCY_MODES: readonly OverlayModeId[] = ['dob-only', 'dob-driver', 'dob-destiny', 'dob-driver-destiny', 'dob-indian-pool'];
 
 export interface ModeFrequency {
   lineComplete: Record<string, number>;

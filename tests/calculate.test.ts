@@ -183,11 +183,11 @@ describe('default fixture 02-06-1970', () => {
 });
 
 describe('overlay modes', () => {
-  it('lists five modes; Kua is unavailable and cannot be analysed', () => {
-    expect(OVERLAY_MODES.map((m) => m.id)).toEqual(['dob-only', 'dob-driver', 'dob-destiny', 'dob-driver-destiny', 'dob-driver-destiny-kua']);
-    const kua = OVERLAY_MODES[4]!;
+  it('lists six modes; adding Kua to the grid is unavailable and cannot be analysed', () => {
+    expect(OVERLAY_MODES.map((m) => m.id)).toEqual(['dob-only', 'dob-driver', 'dob-destiny', 'dob-driver-destiny', 'dob-indian-pool', 'dob-driver-destiny-kua']);
+    const kua = OVERLAY_MODES[5]!;
     expect(kua.available).toBe(false);
-    expect(() => analyse(dobOf('23-11-1994'), kua.id)).toThrow(/Kua/);
+    expect(() => analyse(dobOf('23-11-1994'), kua.id)).toThrow(/not added to the date-of-birth grid/);
   });
   it('DOB-only adds nothing', () => {
     const a = analyse(dobOf('23-11-1994'));
@@ -203,11 +203,38 @@ describe('overlay modes', () => {
   });
 });
 
+describe('Indian pool rule (Destiny always; Driver unless the day is 1-9, 10, 20 or 30)', () => {
+  it('02-06-1970: day 2, Driver is NOT added; Destiny 7 is added (7 appears twice)', () => {
+    const a = analyse(dobOf('02-06-1970'), 'dob-indian-pool');
+    expect(a.digits.find((d) => d.digit === 2)).toMatchObject({ rawCount: 1, overlayCount: 0, combinedCount: 1 });
+    expect(a.digits.find((d) => d.digit === 7)).toMatchObject({ rawCount: 1, overlayCount: 1, combinedCount: 2, overlaySources: ['Destiny'] });
+  });
+  it('23-11-1994: day 23, both added (same as Driver + Destiny)', () => {
+    const d = dobOf('23-11-1994');
+    expect(analyse(d, 'dob-indian-pool').digits).toEqual(analyse(d, 'dob-driver-destiny').digits);
+  });
+  it('10-10-2010: day 10, Driver 1 not added; Destiny 5 added', () => {
+    const a = analyse(dobOf('10-10-2010'), 'dob-indian-pool'); // digits 1,0,1,0,2,0,1,0 -> 1x3, 2x1; Destiny 5
+    expect(a.digits.find((d) => d.digit === 1)).toMatchObject({ rawCount: 3, overlayCount: 0 });
+    expect(a.digits.find((d) => d.digit === 5)).toMatchObject({ rawCount: 0, overlayCount: 1 });
+  });
+  it('days 11-19, 21-29 and 31 add the Driver (19: Driver 1, 29: Driver 2, 31: Driver 4)', () => {
+    expect(analyse(dobOf('19-03-1990'), 'dob-indian-pool').digits.find((d) => d.digit === 1)!.overlaySources).toContain('Driver');
+    expect(analyse(dobOf('29-03-1990'), 'dob-indian-pool').digits.find((d) => d.digit === 2)!.overlaySources).toContain('Driver');
+    expect(analyse(dobOf('31-01-1987'), 'dob-indian-pool').digits.find((d) => d.digit === 4)!.overlaySources).toContain('Driver');
+  });
+  it('the raw audit is untouched and the mode is deterministic', () => {
+    const d = dobOf('15-03-1977');
+    expect(analyse(d, 'dob-indian-pool').audit).toEqual(analyse(d, 'dob-only').audit);
+    expect(analyse(d, 'dob-indian-pool')).toEqual(analyse(d, 'dob-indian-pool'));
+  });
+});
+
 describe('property checks', () => {
   const dateArb = fc.date({ min: new Date('1583-01-01T12:00:00Z'), max: new Date('2100-12-31T12:00:00Z'), noInvalidDate: true });
   const toText = (d: Date) =>
     `${String(d.getUTCDate()).padStart(2, '0')}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCFullYear()).padStart(4, '0')}`;
-  const modes = ['dob-only', 'dob-driver', 'dob-destiny', 'dob-driver-destiny'] as const;
+  const modes = ['dob-only', 'dob-driver', 'dob-destiny', 'dob-driver-destiny', 'dob-indian-pool'] as const;
   const parse = (d: Date) => {
     const r = parseDob(toText(d), new Date(2200, 0, 1));
     if (!r.ok) throw new Error(r.error);
@@ -261,7 +288,8 @@ describe('property checks', () => {
         expect(analyse(dob, mode)).toEqual(first);
         expect(first.audit).toEqual(analyse(dob, 'dob-only').audit);
         for (const s of first.digits) expect(s.combinedCount).toBe(s.rawCount + s.overlayCount);
-        expect(first.digits.reduce((n, s) => n + s.overlayCount, 0)).toBe((first.mode.addsDriver ? 1 : 0) + (first.mode.addsDestiny ? 1 : 0));
+        const skipsDriver = mode === 'dob-indian-pool' && (dob.day <= 10 || dob.day === 20 || dob.day === 30);
+        expect(first.digits.reduce((n, s) => n + s.overlayCount, 0)).toBe((first.mode.addsDriver && !skipsDriver ? 1 : 0) + (first.mode.addsDestiny ? 1 : 0));
       }),
     );
   });

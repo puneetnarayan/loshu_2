@@ -8,6 +8,7 @@ import { GridView, CellDetail } from './components/GridView';
 import type { GridLayer, Orientation } from './components/GridView';
 import { HelpPanel } from './components/Help';
 import { PrintReport } from './components/PrintReport';
+import { reportBlocks } from './report/blocks';
 import { buildReport, parseDob } from './loshu';
 import { EXTRAS } from './data/schema';
 import type { Extra } from './data/schema';
@@ -28,8 +29,11 @@ export function App() {
   const [tab, setTab] = useState<Tab>('advanced'); // Advanced is the default
   const [text, setText] = useState(DEFAULT_DOB_TEXT);
   const [name, setName] = useState(DEFAULT_NAME);
+  const [kuaFormula, setKuaFormula] = useState<'both' | 'male' | 'female'>('both');
   const [touched, setTouched] = useState(false);
   const [printing, setPrinting] = useState(false);
+  const [pdfBusy, setPdfBusy] = useState(false);
+  const [pdfError, setPdfError] = useState<string | null>(null);
   const [mode, setMode] = useState<OverlayModeId>('dob-only');
   const [layer, setLayer] = useState<GridLayer>('raw');
   const [extras, setExtras] = useState<Extra[]>([...EXTRAS]); // Advanced shows every optional reading by default
@@ -48,12 +52,14 @@ export function App() {
 
   // Both tabs call the same engine. Basic is always DOB-only; Advanced uses the chosen overlay mode.
   const basicReport = useMemo(() => (dob ? buildReport(dob, 'dob-only', { asOf }) : null), [dob, asOf]);
-  const advancedReport = useMemo(() => (dob ? buildReport(dob, mode, { extras, name, asOf }) : null), [dob, mode, extras, name, asOf]);
+  const advancedReport = useMemo(() => (dob ? buildReport(dob, mode, { extras, name, asOf, kuaFormula }) : null), [dob, mode, extras, name, asOf, kuaFormula]);
 
   const reset = () => {
     setText('');
     setName('');
+    setKuaFormula('both');
     setTouched(false);
+    setPdfError(null);
     setMode('dob-only');
     setLayer('raw');
     setExtras([...EXTRAS]);
@@ -72,6 +78,23 @@ export function App() {
       window.removeEventListener('afterprint', after);
     };
   }, []);
+
+  // Direct download: built entirely in the browser; the file name and metadata never contain the name or date.
+  const downloadReport = async () => {
+    if (!advancedReport) return;
+    setPdfBusy(true);
+    setPdfError(null);
+    try {
+      const generated = asOf.toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
+      const { downloadBytes, renderPdf } = await import('./pdf/renderPdf'); // loaded only when a PDF is requested
+      const bytes = await renderPdf(reportBlocks(advancedReport, { name, extras, compareText, generated }));
+      downloadBytes(bytes, 'lo-shu-report.pdf');
+    } catch {
+      setPdfError('The PDF could not be created. Try “Print / Save as PDF” instead.');
+    } finally {
+      setPdfBusy(false);
+    }
+  };
 
   const changeMode = (m: OverlayModeId) => {
     setMode(m);
@@ -104,7 +127,7 @@ export function App() {
         <HelpPanel open={helpOpen} onToggle={() => setHelpOpen((o) => !o)} />
       </header>
 
-      <DateForm value={text} name={name} error={error} onChange={setText} onNameChange={setName} onBlur={() => setTouched(true)} onReset={reset} onReport={() => window.print()} canReport={dob !== null} />
+      <DateForm value={text} name={name} kuaFormula={kuaFormula} onKuaFormula={setKuaFormula} error={error} onChange={setText} onNameChange={setName} onBlur={() => setTouched(true)} onReset={reset} onReport={downloadReport} onPrint={() => window.print()} canReport={dob !== null} busy={pdfBusy} reportError={pdfError} />
 
       {dob && (
         <p className="prepared">

@@ -39,14 +39,15 @@ export type Category =
   | 'element'
   | 'remedy'
   | 'cycle'
-  | 'name';
+  | 'name'
+  | 'kua';
 
 /** Optional readings that can be switched on and off. */
-export type Extra = 'planetary' | 'remedies' | 'elements' | 'cycle' | 'name';
-export const EXTRAS: readonly Extra[] = ['planetary', 'remedies', 'elements', 'cycle', 'name'];
+export type Extra = 'planetary' | 'remedies' | 'elements' | 'cycle' | 'name' | 'kua';
+export const EXTRAS: readonly Extra[] = ['planetary', 'elements', 'kua', 'remedies', 'cycle', 'name'];
 
 export type Element = 'water' | 'earth' | 'wood' | 'metal' | 'fire';
-export type DerivedKind = 'driver' | 'destiny' | 'expression' | 'soul-urge' | 'personality' | 'personal-year';
+export type DerivedKind = 'driver' | 'destiny' | 'expression' | 'soul-urge' | 'personality' | 'personal-year' | 'kua';
 
 export interface DerivedCondition {
   kind: DerivedKind;

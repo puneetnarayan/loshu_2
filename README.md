@@ -11,7 +11,7 @@ The form opens with the name "Puneet Narayan" and the date 02-06-1970 (constants
 
 ## Live results and the PDF report
 
-There is no Calculate button: the date is parsed on every keystroke and the reading updates as soon as a complete, valid date is present (errors appear once ten characters are entered or the field is left). **Report PDF** opens the browser's print dialog with a dedicated A4 report (grid, audit, eight lines, interpretation, evidence, sources); choose "Save as PDF". Nothing is uploaded, and the page title (the default file name) never contains the name or date.
+There is no Calculate button: the date is parsed on every keystroke and the reading updates as soon as a complete, valid date is present (errors appear once ten characters are entered or the field is left). **Report PDF** downloads `lo-shu-report.pdf`, a multi-page A4 report (grid, audit, eight lines, interpretation, optional readings with their riders, evidence, sources) built entirely in the browser with `pdf-lib` (loaded on demand). The file name and metadata never contain the name or date. **Print / Save as PDF** uses the browser's print dialog instead and can print characters the standard PDF fonts cannot show.
 
 ## Run
 
@@ -33,7 +33,7 @@ Node 22 was used for development.
 - `src/data/`: schema, source registry, interpretation catalogue (`rules.ts`, `extraRules.ts`, merged in `catalogue.ts`), generated pattern frequencies, catalogue validator.
 - `src/components/`: Basic, Advanced, grid, form, help/glossary, shared pieces.
 - `tests/`: dates, calculations (incl. property tests), catalogue/synthesis, UI.
-- `docs/`: research log and methodology.
+- `docs/`: research log, methodology and `docs/reviews/` (review of a supplied desktop app and what was ported from it).
 
 ## Deployment
 

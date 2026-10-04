@@ -5,16 +5,21 @@ import { isoToDdMmYyyy } from '../loshu';
 interface Props {
   value: string;
   name: string;
+  kuaFormula: 'both' | 'male' | 'female';
+  onKuaFormula: (f: 'both' | 'male' | 'female') => void;
   error: string | null;
   onChange: (v: string) => void;
   onNameChange: (v: string) => void;
   onBlur: () => void;
   onReset: () => void;
   onReport: () => void;
+  onPrint: () => void;
   canReport: boolean;
+  busy: boolean;
+  reportError: string | null;
 }
 
-export function DateForm({ value, name, error, onChange, onNameChange, onBlur, onReset, onReport, canReport }: Props) {
+export function DateForm({ value, name, kuaFormula, onKuaFormula, error, onChange, onNameChange, onBlur, onReset, onReport, onPrint, canReport, busy, reportError }: Props) {
   const id = useId();
   const errId = `${id}-err`;
   const hintId = `${id}-hint`;
@@ -66,7 +71,18 @@ export function DateForm({ value, name, error, onChange, onNameChange, onBlur, o
               }}
             />
           </div>
+          <div>
+            <label htmlFor={`${id}-kua`}>Kua formula (optional)</label>
+            <select id={`${id}-kua`} value={kuaFormula} onChange={(e) => onKuaFormula(e.target.value as 'both' | 'male' | 'female')} aria-describedby={`${hintId}-kua`}>
+              <option value="both">Show both formulas</option>
+              <option value="male">Male formula</option>
+              <option value="female">Female formula</option>
+            </select>
+          </div>
         </div>
+        <p id={`${hintId}-kua`} className="muted small">
+          Only used for the optional Kua (Feng Shui) reading. Kua has two traditional formulas, historically labelled male and female; “show both” interprets neither. Nothing is stored.
+        </p>
         <p id={`${hintId}-name`} className="muted small">
           The name is only shown as a label on this page. It is not used in any calculation.
         </p>
@@ -83,13 +99,21 @@ export function DateForm({ value, name, error, onChange, onNameChange, onBlur, o
         <button type="button" className="btn" onClick={onReset}>
           Reset
         </button>
-        <button type="button" className="btn btn-primary" onClick={onReport} disabled={!canReport} aria-describedby={`${hintId}-pdf`}>
-          Report PDF
+        <button type="button" className="btn btn-primary" onClick={onReport} disabled={!canReport || busy} aria-describedby={`${hintId}-pdf`}>
+          {busy ? 'Preparing PDF…' : 'Report PDF'}
+        </button>
+        <button type="button" className="btn" onClick={onPrint} disabled={!canReport} aria-describedby={`${hintId}-pdf`}>
+          Print / Save as PDF
         </button>
       </div>
+      {reportError && (
+        <p className="error" role="alert">
+          {reportError}
+        </p>
+      )}
       <p id={`${hintId}-pdf`} className="muted small">
         {canReport
-          ? 'Results update automatically as you type a complete date. “Report PDF” opens your browser’s print dialog: choose “Save as PDF”.'
+          ? 'Results update automatically as you type a complete date. “Report PDF” downloads a file named lo-shu-report.pdf (no name or date in the file name or metadata). “Print / Save as PDF” uses your browser’s print dialog instead and can print any characters in a name.'
           : 'Enter a complete, valid date to see the reading and enable the PDF report.'}
       </p>
       <p className="privacy">

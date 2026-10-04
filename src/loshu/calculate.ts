@@ -1,6 +1,6 @@
 import { DIGITS, LINES, POSITIONS } from './constants';
 import { elementProfile } from './extras';
-import { getMode, KUA_UNAVAILABLE_REASON, reduceToDigit } from './overlays';
+import { getMode, KUA_UNAVAILABLE_REASON, POOL_DAYS_WITHOUT_DRIVER, reduceToDigit } from './overlays';
 import type {
   Analysis,
   CalculationAudit,
@@ -100,7 +100,8 @@ export function analyse(dob: ParsedDob, modeId: OverlayModeId = 'dob-only'): Ana
     overlayCounts[d] = 0;
     overlaySources[d] = [];
   }
-  if (mode.addsDriver) {
+  const addDriver = mode.addsDriver && !(mode.driverUnlessInDay && POOL_DAYS_WITHOUT_DRIVER.includes(dob.day));
+  if (addDriver) {
     overlayCounts[driver.value] += 1;
     overlaySources[driver.value].push('Driver');
   }

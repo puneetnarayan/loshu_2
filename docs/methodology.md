@@ -7,7 +7,7 @@
 - **Driver (Moolank):** digits of the **day only**, summed, repeated digit-sum until a single digit 1–9. Example: 23 → 2+3 = 5.
 - **Destiny (Bhagyank):** all eight digits of the date, summed, repeated digit-sum until 1–9, with no master-number preservation. Example: 23-11-1994 → 2+3+1+1+1+9+9+4 = 30 → 3.
 - **Overlay layer:** separate counts. Each selected overlay adds **one** occurrence of its digit (Driver and/or Destiny; they stack if equal). `combined = raw + overlay`. The raw audit trail is never rewritten.
-- **Modes:** DOB only (default), +Driver, +Destiny, +Driver+Destiny. **+Kua is listed but unavailable** (see `docs/research/research-log.md`, subject 7).
+- **Modes:** DOB only (default), +Driver, +Destiny, +Driver+Destiny, and the Indian pool rule (Destiny always; Driver unless the day is 1–9, 10, 20 or 30). **Adding Kua to the grid is listed but unavailable.** Kua itself is calculated separately (1900–2099, Li Chun boundary, 3–5 February returns both candidates) and never changes the grid.
 - **Repetition:** three tiers per digit: two (strengthened), three (excess begins), four or more (dominant). Per-digit count-specific descriptions are not used because they were not verified.
 - **Lines:** exactly eight geometric lines: rows 4-9-2, 3-5-7, 8-1-6; columns 4-3-8, 9-5-1, 2-7-6; diagonals 4-5-6, 2-5-8. Complete = 3 present, empty = 3 missing, partial otherwise. No other groupings are ever created.
 - **Basic tab** always uses DOB-only. **Advanced** uses the selected mode. Both call the same `buildReport()` function; there are no separate formulas.

@@ -5,7 +5,7 @@ import type { Extra } from '../data/schema';
 import { digitRule, ruleById } from '../lookup';
 import { DIGITS, OVERLAY_MODES, buildReport, lineLabel } from '../loshu';
 import type { Digit, OverlayModeId, Report } from '../loshu';
-import { CompareSection, CycleSection, ElementSection, FactsSection, FrequencySection, KeyNumbersSection, NameSection, PlanetSection, RemedySection } from './AdvancedExtras';
+import { CompareSection, CycleSection, ElementSection, FactsSection, FrequencySection, KeyNumbersSection, KuaSection, NameSection, PlanetSection, RemedySection } from './AdvancedExtras';
 import { CellDetail, GridView } from './GridView';
 import type { GridLayer, Orientation } from './GridView';
 import { Derivation, EvidenceLabel, Rider, RuleDerivation, RuleRecord, Section, StatusTag, TableWrap, VerificationBadge } from './shared';
@@ -31,6 +31,7 @@ interface Props {
 const EXTRA_LABEL: Record<Extra, string> = {
   planetary: 'Planetary associations and profile (Indian scheme)',
   elements: 'Five elements (Feng Shui / Nine Star Ki mapping)',
+  kua: 'Kua number (Feng Shui; needs the Li Chun boundary, shown separately from the grid)',
   remedies: 'Reported remedies (habits and traditional practices)',
   cycle: 'Personal year cycle (forecast style, very low confidence)',
   name: 'Name numbers (Pythagorean, very low confidence)',
@@ -42,7 +43,7 @@ export function Advanced(p: Props) {
   const { report, mode, layer, extras, orientation } = p;
   const planetary = extras.includes('planetary');
   const { analysis: a, triggered, synthesis, checks } = report;
-  const baseline = useMemo(() => buildReport(a.dob, 'dob-only', { extras, name: p.name, asOf: p.asOf }), [a.dob, extras, p.name, p.asOf]);
+  const baseline = useMemo(() => buildReport(a.dob, 'dob-only', { extras, name: p.name, asOf: p.asOf, kuaFormula: report.kuaFormula }), [a.dob, extras, p.name, p.asOf, report.kuaFormula]);
   const baseIds = new Set(baseline.triggered.map((t) => t.rule.id));
   const nowIds = new Set(triggered.map((t) => t.rule.id));
   const gained = [...nowIds].filter((i) => !baseIds.has(i));
@@ -307,6 +308,7 @@ export function Advanced(p: Props) {
 
       {extras.includes('planetary') && <PlanetSection report={report} />}
       {extras.includes('elements') && <ElementSection report={report} />}
+      {extras.includes('kua') && <KuaSection report={report} />}
       {extras.includes('remedies') && <RemedySection report={report} />}
       {extras.includes('cycle') && <CycleSection report={report} />}
       {extras.includes('name') && <NameSection report={report} />}

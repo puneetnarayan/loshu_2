@@ -30,6 +30,7 @@ const KIND_LABEL: Record<DerivedKind, string> = {
   'soul-urge': 'Soul Urge number',
   personality: 'Personality number',
   'personal-year': 'Personal Year number',
+  kua: 'Kua number',
 };
 
 /** Returns the reasons if the rule matches, otherwise null. Pure and deterministic. */

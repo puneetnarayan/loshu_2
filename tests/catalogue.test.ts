@@ -27,7 +27,8 @@ describe('source and rule validation', () => {
     expect(n('remedy')).toBe(12); // 9 missing + repeated 1, 4, 5
     expect(n('cycle')).toBe(9);
     expect(n('name')).toBe(27);
-    expect(RULES).toHaveLength(180);
+    expect(n('kua')).toBe(8);
+    expect(RULES).toHaveLength(188);
     expect(new Set(RULES.map((r) => r.id)).size).toBe(RULES.length);
   });
   it('covers every digit with present/missing/repeated and every line with complete/empty', () => {
@@ -174,7 +175,7 @@ describe('synthesis', () => {
     const subjects = report.synthesis.unsupported.map((u) => u.subject).join(' | ');
     expect(subjects).toMatch(/Digit-specific readings for partial lines/);
     expect(subjects).toMatch(/Digit-specific readings for exact counts/);
-    expect(subjects).toMatch(/Kua/);
+    expect(subjects).toMatch(/Kua as a grid overlay/);
     expect(subjects).not.toMatch(/Driver\/Destiny and Lo Shu lines/); // DOB-only: no overlay interaction note
     const o = buildReport(dob, 'dob-driver-destiny').synthesis.unsupported.map((u) => u.subject).join(' | ');
     expect(o).toMatch(/Driver\/Destiny and Lo Shu lines/);

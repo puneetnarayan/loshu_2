@@ -121,7 +121,7 @@ export function synthesise(triggered: TriggeredRule[], a: Analysis): Synthesis {
       reason: 'No documented rule was verified for these interactions. Overlays only change counts; no extra interpretation is added.',
     });
   }
-  unsupported.push({ subject: 'Kua number', reason: a.kua.reason });
+  unsupported.push({ subject: 'Kua as a grid overlay', reason: a.kua.reason });
   const matchedDigits = new Set(kept.flatMap((t) => [...t.rule.requiredDigits, ...t.rule.requiredCounts.map((c) => c.digit)]));
   if (kept.length === 0 || matchedDigits.size === 0) {
     unsupported.push({ subject: 'Whole chart', reason: 'No documented rule applies to this input.' });

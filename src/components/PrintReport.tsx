@@ -3,7 +3,7 @@ import type { Extra } from '../data/schema';
 import { getSource } from '../data/sources';
 import { DIGIT_PLANETS, LINE_NAMES } from '../data/rules';
 import { FREQUENCY_RANGE, patternFrequencies } from '../lookup';
-import { analyse, compareAnalyses, GRID_LAYOUT, lineLabel, parseDob, planetProfile } from '../loshu';
+import { analyse, compareAnalyses, GRID_LAYOUT, KUA_GROUP_DIRECTIONS, kuaGroup, kuaSteps, lineLabel, parseDob, planetProfile } from '../loshu';
 import type { Report } from '../loshu';
 
 const STATE_TEXT = { complete: 'Complete', partial: 'Partial', empty: 'Empty' } as const;
@@ -167,6 +167,7 @@ function RuleList({ items }: { items: Report['triggered'] }) {
 const RIDER = {
   planetary: 'The digit-to-planet mapping was confirmed by several search summaries (Indian scheme); the planet themes are general keywords, partly from background knowledge, and not verified.',
   elements: 'The element of each number comes from Feng Shui / Nine Star Ki, a different tradition from Indian Lo Shu numerology; the element themes were not verified.',
+  kua: 'Kua is Feng Shui (Eight Mansions), a different tradition from the Lo Shu grid, and never changes the grid. Sources differ on the year boundary (Li Chun versus Chinese New Year); on 3-5 February the exact moment of Li Chun decides. Per-direction meanings were not visible and are not used.',
   remedies: 'Remedies come from search summaries of commercial guides. No evidence that any traditional remedy changes anything; none is promised. Gemstone advice is omitted. Do not use remedies in place of professional advice.',
   cycle: 'Forecast-style reading from Western numerology, not Lo Shu tradition; generic, unvalidated meanings; no source text was read.',
   name: 'A separate Pythagorean system; schools differ on Y, master numbers and which name to use; the readings reuse the Lo Shu keywords for each digit. The name never changes the grid.',
@@ -195,6 +196,25 @@ function OptionalReadings({ report, extras, compareText }: { report: Report; ext
           <p className="note">{RIDER.elements}</p>
           <p>{a.elements.rows.map((r) => `${r.element} ${r.count}`).join(' · ')}. Most represented: {a.elements.dominant.join(', ') || 'none'}. Not represented: {a.elements.absent.join(', ') || 'none'}.</p>
           <RuleList items={cat('element')} />
+        </>
+      )}
+      {extras.includes('kua') && (
+        <>
+          <h3>Kua number (low confidence)</h3>
+          <p className="note">{RIDER.kua}</p>
+          <p>{report.kua.note}</p>
+          <ul>
+            {report.kua.candidates.map((c) => {
+              const f = (n: number | null) => (n === null ? 'not available' : `${n} (${kuaGroup(n)} group: ${KUA_GROUP_DIRECTIONS[kuaGroup(n)].join(', ')})`);
+              return (
+                <li key={c.assumes}>
+                  {c.assumes === 'before-li-chun' ? 'Before Li Chun' : 'On or after Li Chun'}, solar year {c.solarYear}: male formula {f(c.male)} [{kuaSteps(c.solarYear, 'male')?.join(' → ') ?? '—'}]; female formula {f(c.female)} [{kuaSteps(c.solarYear, 'female')?.join(' → ') ?? '—'}].
+                </li>
+              );
+            })}
+          </ul>
+          {report.kuaFormula === 'both' && <p>Both formulas are shown and neither is interpreted.</p>}
+          <RuleList items={cat('kua')} />
         </>
       )}
       {extras.includes('remedies') && (

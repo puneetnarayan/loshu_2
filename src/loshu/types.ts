@@ -36,6 +36,7 @@ export type OverlayModeId =
   | 'dob-driver'
   | 'dob-destiny'
   | 'dob-driver-destiny'
+  | 'dob-indian-pool'
   | 'dob-driver-destiny-kua';
 
 export interface OverlayModeDef {
@@ -43,6 +44,8 @@ export interface OverlayModeDef {
   label: string;
   addsDriver: boolean;
   addsDestiny: boolean;
+  /** Pool rule: skip the Driver when the day is one of POOL_DAYS_WITHOUT_DRIVER. */
+  driverUnlessInDay?: boolean;
   addsKua: boolean;
   available: boolean;
   unavailableReason?: string;

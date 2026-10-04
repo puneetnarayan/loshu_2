@@ -118,3 +118,16 @@ Still search summaries only; no page opened. Added on request ("build all of the
 | Line weights, grid facts, pattern frequency | Arithmetic, tested. Frequencies are regenerated from the engine and checked against an independent string-based count. | Reproducible | Any meaning for heavy or light lines (no source). |
 
 Sources added to the registry: tier guides, Mulank/Conductor guides, remedy guides, element mapping pages, personal-year pages and name-numerology pages (see `src/data/sources.ts`). One result (an astrology blog's compatibility table) was reviewed and deliberately not registered because nothing relies on it.
+
+---
+
+## Fourth pass: Kua and the supplied desktop app
+
+Prompted by a review of a supplied project (see `docs/reviews/lo-shu-grid-reader-review.md`). Same method; search summaries only.
+
+- **Li Chun** falls on 3, 4 or 5 February; the instant is solar longitude 315° reckoned in China time (UTC+8). Therefore 3–5 February is treated as uncertain and both candidates are shown. Source: a search summary of the Wikipedia article (not opened).
+- **Formulas** (male: 10 − s before 2000, 9 − s from 2000 with 0 read as 9; female: s + 5 before 2000, s + 6 from 2000; 5 becomes 2 male / 8 female) agree across summaries and reproduce quoted chart values: 1970 male 3 female 3; 1984 male 7 female 8; 1985 male 6 female 9; 2005 male 4 female 2 (2004 male 5, which maps to 2, female 1). An independent closed form (male ≡ 2 − year, female ≡ year + 4, mod 9) matches the implementation for every year 1900–2099.
+- **Disagreement found:** some charts begin the year at the lunar new year instead of Li Chun, so a person born between about 4 February and the lunar new year can get a different Kua. This project uses Li Chun and says so in the rider; no lunar-new-year table is used.
+- **Directions:** East group (Kua 1, 3, 4, 9): North, South, East, Southeast. West group (2, 6, 7, 8): West, Northwest, Southwest, Northeast. The four named directions per Kua (Sheng Qi, Tian Yi, Yan Nian, Fu Wei) were referenced but not visible, so they are **not used**.
+- **Number-pool rule** (Destiny always; Driver unless the day is 1–9, 10, 20 or 30): appears in one search summary and in the supplied app; other guides add the Driver in every case. Offered as a separate low-confidence overlay mode.
+- Kua is still **not added to the date-of-birth grid**: no source describing that was verified.

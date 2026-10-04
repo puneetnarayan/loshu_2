@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { DIGIT_PLANETS, LINE_NAMES } from '../data/rules';
 import { FREQUENCY_RANGE, patternFrequencies } from '../lookup';
-import { analyse, compareAnalyses, ELEMENT_DIGITS, lineLabel, parseDob, planetProfile } from '../loshu';
+import { analyse, compareAnalyses, ELEMENT_DIGITS, KUA_GROUP_DIRECTIONS, kuaGroup, kuaSteps, lineLabel, parseDob, planetProfile } from '../loshu';
 import type { Digit, Report } from '../loshu';
 import { EvidenceLabel, RuleDerivation, Rider, Section, StatusTag, TableWrap } from './shared';
 
@@ -255,6 +255,38 @@ export function CompareSection({ report, text, onText }: CompareProps) {
           </TableWrap>
         </>
       )}
+    </Section>
+  );
+}
+
+export function KuaSection({ report }: { report: Report }) {
+  const k = report.kua;
+  const cell = (n: number | null) => (n === null ? 'not available (year outside 1900–2099)' : `${n} (${kuaGroup(n)} group: ${KUA_GROUP_DIRECTIONS[kuaGroup(n)].join(', ')})`);
+  return (
+    <Section title="Kua number (optional, Feng Shui)">
+      <Rider level="low">
+        Kua is a Feng Shui (Eight Mansions) number, a different tradition from the Lo Shu digit grid, and it never changes the grid. The formulas reproduce published chart values and several summaries agree on the east/west group directions. Sources differ on the year boundary (Li Chun versus Chinese New Year), and on 3–5 February the exact moment of Li Chun decides. Per-direction meanings (Sheng Qi, Tian Yi and so on) were not visible and are not used.
+      </Rider>
+      <p>{k.note}</p>
+      <TableWrap>
+        <table className="table">
+          <caption>Kua by traditional formula (the formulas carry historical names; choose “show both” if neither fits)</caption>
+          <thead><tr><th scope="col">Assumes</th><th scope="col">Solar year</th><th scope="col">Male formula</th><th scope="col">Female formula</th></tr></thead>
+          <tbody>
+            {k.candidates.map((c) => (
+              <tr key={c.assumes}>
+                <th scope="row">{c.assumes === 'before-li-chun' ? 'Before Li Chun' : 'On or after Li Chun'}</th>
+                <td>{c.solarYear}</td>
+                <td>{cell(c.male)}<br /><span className="muted small">{kuaSteps(c.solarYear, 'male')?.join(' → ')}</span></td>
+                <td>{cell(c.female)}<br /><span className="muted small">{kuaSteps(c.solarYear, 'female')?.join(' → ')}</span></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </TableWrap>
+      {report.kuaFormula === 'both' && <p className="muted">Both formulas are shown and neither is interpreted. Choose a formula in the input panel to see a reading.</p>}
+      {report.kuaFormula !== 'both' && k.boundary === 'uncertain' && <p className="muted">The reading is withheld because the date falls on 3–5 February; both candidates are shown above.</p>}
+      <RuleBlocks items={by(report, 'kua')} />
     </Section>
   );
 }
