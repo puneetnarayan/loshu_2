@@ -1,7 +1,7 @@
 import { DIGITS, LINES } from './constants';
 import { reduceToDigit } from './overlays';
 import type { Element } from '../data/schema';
-import type { Analysis, Digit, DerivedNumber, ParsedDob } from './types';
+import type { Analysis, Digit, LineState, DerivedNumber, ParsedDob } from './types';
 
 // ---------- Five elements of the Luo Shu numbers ----------
 export const ELEMENTS: readonly Element[] = ['water', 'wood', 'fire', 'earth', 'metal'];
@@ -185,7 +185,7 @@ export interface YearGrid {
   year: number;
   addedDigits: Digit[];
   counts: Record<Digit, number>;
-  lines: Array<{ id: string; label: string; before: string; after: string }>;
+  lines: Array<{ id: string; label: string; before: LineState; after: LineState }>;
   newlyComplete: string[];
   newlyNonEmpty: string[];
   statusChanges: Array<{ digit: Digit; before: number; after: number }>;

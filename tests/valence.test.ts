@@ -62,13 +62,16 @@ describe('summary framing', () => {
 describe('report blocks carry the framing for the PDF and print view', () => {
   const r = buildReport(dobOf('02-06-1970'), 'dob-only', { extras: ['relations', 'kua'], asOf: new Date(2026, 9, 4), kuaFormula: 'male' });
   const blocks = reportBlocks(r, { name: '', extras: ['relations', 'kua'], compareText: '', generated: 'g' });
-  it('summary paragraphs and rule lists have valences; calculation blocks do not', () => {
-    const coloured = blocks.filter((b) => b.t === 'p' && b.valence);
-    expect(coloured.length).toBeGreaterThanOrEqual(3);
-    const items = blocks.flatMap((b) => (b.t === 'ul' ? b.items.filter((i) => typeof i !== 'string') : []));
-    expect(items.length).toBeGreaterThan(10);
-    expect(blocks.filter((b) => b.t === 'table' || b.t === 'grid').every((b) => !('valence' in b))).toBe(true);
-    const missing5 = items.find((i) => typeof i !== 'string' && i.text.includes('[NUM-5-MISSING]'));
-    expect(missing5).toMatchObject({ valence: 'negative' });
+  it('rule and summary tables carry tones with text tags; calculation tables stay plain', () => {
+    const cellsOf = (b: (typeof blocks)[number]) => (b.t === 'table' ? b.rows.flat().filter((c) => typeof c !== 'string') : []);
+    const toned = blocks.flatMap(cellsOf).filter((c) => typeof c !== 'string' && (c.tone === 'positive' || c.tone === 'neutral' || c.tone === 'negative'));
+    expect(toned.length).toBeGreaterThan(20);
+    const tags = toned.filter((c) => typeof c !== 'string' && /^(Positive|Neutral|Challenge)/.test(c.text));
+    expect(tags.length).toBeGreaterThan(5);
+    const row = blocks.flatMap((b) => (b.t === 'table' ? b.rows : [])).find((r) => r.some((c) => (typeof c === 'string' ? c : c.text).includes('[NUM-5-MISSING]')));
+    expect(row).toBeTruthy();
+    expect(row!.some((c) => typeof c !== 'string' && c.tone === 'negative')).toBe(true);
+    expect(blocks.some((b) => b.t === 'grids')).toBe(true);
+    expect(blocks.some((b) => b.t === 'legend')).toBe(true);
   });
 });

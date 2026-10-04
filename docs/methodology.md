@@ -68,6 +68,7 @@ Every rule has `confidence` (`moderate`, `low` or `very-low`; never "high") and 
 
 - **Optional readings** are now: planetary profile, five elements, Kua, Driver–Destiny relation, remedies, gemstones (off by default), personal-year cycle (with personal months and a descriptive year grid) and name numbers. Each has a section-level rider and rule-level confidence.
 - **Report model:** `src/report/blocks.ts` builds one neutral block list. The PDF writer (`src/pdf/renderPdf.ts`) and the print view (`src/components/PrintReport.tsx`) both render it, so they cannot drift apart. Optional branding lines (business, operator, contact) are added at the top.
+- **Report layout:** tables for audit, lines, readings (framing, rule, reading, evidence/confidence), sources and notes; 3×3 grids for the main grid, raw/overlay/combined layers, a line map, elements, Kua directions, personal months and year comparisons. Colour is pastel and limited: green = good, yellow = medium, red = not good (the tradition’s framing, not a fault), plus one lavender tint for headers. Every coloured reading also has a text tag, so colour is never the only signal.
 
 ## Interpretation colours
 
