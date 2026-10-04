@@ -1,5 +1,6 @@
-import { cleanup, render, screen, within } from '@testing-library/react';
+import { act, cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { readFileSync } from 'node:fs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { App } from '../src/App';
 
@@ -12,7 +13,6 @@ async function enterDate(user: ReturnType<typeof userEvent.setup>, value: string
   const input = screen.getByLabelText(/Date of birth \(DD-MM-YYYY\)/);
   await user.clear(input);
   if (value) await user.type(input, value);
-  await user.click(screen.getByRole('button', { name: 'Calculate' }));
 }
 
 const cellLabel = (n: number) => new RegExp(`^Number ${n},`);
@@ -69,7 +69,6 @@ describe('defaults', () => {
     const before = [1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => screen.getByRole('button', { name: cellLabel(n) }).getAttribute('aria-label'));
     await user.clear(screen.getByLabelText(/Name \(optional\)/));
     await user.type(screen.getByLabelText(/Name \(optional\)/), 'Someone Else');
-    await user.click(screen.getByRole('button', { name: 'Calculate' }));
     expect(screen.getByText(/Reading for/)).toHaveTextContent('Reading for Someone Else · born 02-06-1970');
     expect([1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => screen.getByRole('button', { name: cellLabel(n) }).getAttribute('aria-label'))).toEqual(before);
     expect(setItem).not.toHaveBeenCalled();
@@ -84,12 +83,105 @@ describe('defaults', () => {
   });
 });
 
+describe('live results', () => {
+  it('has no Calculate button, and the interpretation updates as soon as a valid date is complete', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    expect(screen.queryByRole('button', { name: 'Calculate' })).not.toBeInTheDocument();
+    const input = screen.getByLabelText(/Date of birth \(DD-MM-YYYY\)/);
+    await user.clear(input);
+    await user.type(input, '23-11-199'); // incomplete: no stale reading, no error yet
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(screen.getByText(/appears automatically/)).toBeInTheDocument();
+    await user.type(input, '4'); // 23-11-1994 is now complete
+    expect(screen.getByText(/Reading for/)).toHaveTextContent('born 23-11-1994');
+    expect(screen.getByRole('button', { name: cellLabel(1) })).toHaveAccessibleName(/Appears 3 times/);
+    expect(screen.getAllByText(/4–9–2 is complete — Mental plane/).length).toBeGreaterThan(0);
+    // change the date again: updates with nothing pressed
+    await user.clear(input);
+    await user.type(input, '02-06-1970');
+    expect(screen.getByRole('button', { name: cellLabel(1) })).toHaveAccessibleName(/Appears 1 time/);
+    expect(screen.getAllByText(/2–7–6 is complete — Action plane/).length).toBeGreaterThan(0);
+  });
+  it('shows an error as soon as ten characters are present and the date is invalid, then recovers', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    const input = screen.getByLabelText(/Date of birth \(DD-MM-YYYY\)/);
+    await user.clear(input);
+    await user.type(input, '31-04-2021');
+    expect(screen.getByRole('alert')).toHaveTextContent(/does not exist/);
+    expect(screen.queryByText(/Reading for/)).not.toBeInTheDocument();
+    await user.clear(input);
+    await user.type(input, '30-04-2021');
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(screen.getByText(/Reading for/)).toHaveTextContent('born 30-04-2021');
+  });
+  it('Advanced opens with the per-number and plane panels expanded', () => {
+    const { container } = render(<App />);
+    expect(screen.getByRole('tab', { name: /Advanced/ })).toHaveAttribute('aria-selected', 'true');
+    expect(container.querySelectorAll('details.number-detail[open]')).toHaveLength(9);
+    expect(screen.getByRole('heading', { level: 3, name: 'Calculation audit' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 3, name: 'Interpretation (rule-based)' })).toBeInTheDocument();
+  });
+});
+
+describe('PDF report', () => {
+  it('has a Report PDF button next to Reset, enabled only for a valid date', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    const pdf = screen.getByRole('button', { name: 'Report PDF' });
+    const reset = screen.getByRole('button', { name: 'Reset' });
+    expect(pdf).toBeEnabled();
+    expect(pdf.parentElement).toBe(reset.parentElement);
+    await user.clear(screen.getByLabelText(/Date of birth \(DD-MM-YYYY\)/));
+    expect(pdf).toBeDisabled();
+  });
+  it('prints a complete report only while printing, with no storage, network or date in the title', async () => {
+    const user = userEvent.setup();
+    const setItem = vi.spyOn(Storage.prototype, 'setItem');
+    const fetchSpy = vi.fn();
+    vi.stubGlobal('fetch', fetchSpy);
+    const print = vi.fn(() => {
+      window.dispatchEvent(new Event('beforeprint'));
+    });
+    window.print = print;
+    const { container } = render(<App />);
+    expect(container.querySelector('.print-report')).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'Report PDF' }));
+    expect(print).toHaveBeenCalledTimes(1);
+    const report = container.querySelector('.print-report') as HTMLElement;
+    expect(report).not.toBeNull();
+    const text = report.textContent ?? '';
+    expect(text).toMatch(/Prepared for Puneet Narayan/);
+    expect(text).toMatch(/Date of birth 02-06-1970/);
+    for (const h of ['1. Grid', '2. Calculation audit', '3. The eight lines', '4. Interpretation (rule-based)', '5. Evidence and limitations', '6. Sources cited by the rules above']) expect(text).toContain(h);
+    expect(text).toMatch(/2–7–6 is complete — Action plane/);
+    expect(text).toMatch(/4–3–8 is entirely empty/);
+    expect(text).toMatch(/Calculation verified/);
+    expect(text).toMatch(/not scientifically validated/);
+    expect(text).toMatch(/https:\/\//); // sources are listed with their URLs
+    expect(text).not.toMatch(/\d+(\.\d+)?\s?%\s*(accura|confiden|match|likel)/i);
+    // The default PDF file name comes from the page title; it must stay neutral and never be set from the date or name.
+    expect(readFileSync('index.html', 'utf8')).toMatch(/<title>Lo Shu Grid Calculator<\/title>/);
+    expect(readFileSync('src/App.tsx', 'utf8')).not.toMatch(/document\.title/);
+    expect(document.title).not.toMatch(/1970|Puneet/);
+    act(() => {
+      window.dispatchEvent(new Event('afterprint'));
+    });
+    expect(container.querySelector('.print-report')).toBeNull();
+    expect(setItem).not.toHaveBeenCalled();
+    expect(fetchSpy).not.toHaveBeenCalled();
+    vi.unstubAllGlobals();
+  });
+});
+
 describe('input and validation', () => {
   it('shows the fixed grid and an empty state after Reset', async () => {
     const user = userEvent.setup();
     render(<App />);
     await user.click(screen.getByRole('button', { name: 'Reset' }));
-    expect(screen.getByText(/Enter a date of birth above/)).toBeInTheDocument();
+    expect(screen.getByText(/Enter a complete, valid date of birth above/)).toBeInTheDocument();
     for (const n of [4, 9, 2, 3, 5, 7, 8, 1, 6]) expect(screen.getByRole('button', { name: new RegExp(`^Number ${n}\\.`) })).toBeInTheDocument();
   });
   it('rejects an impossible date with a clear message and no result', async () => {

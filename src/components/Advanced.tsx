@@ -177,7 +177,7 @@ export function Advanced(p: Props) {
           const present = digitRule(d, 'PRESENT');
           const applies = (k: string) => nowIds.has(`NUM-${d}-${k}`);
           return (
-            <details key={d} className="number-detail">
+            <details key={d} className="number-detail" open>
               <summary>
                 <strong>{d}</strong> · {stat.position.label} · raw {stat.rawCount}, overlay {stat.overlayCount}, total {stat.combinedCount} · <StatusTag status={stat.effectiveStatus} />
               </summary>
@@ -246,7 +246,7 @@ export function Advanced(p: Props) {
               const cr = ruleById(`LINE-${l.def.id}-COMPLETE`)!;
               const er = ruleById(`LINE-${l.def.id}-EMPTY`)!;
               return (
-                <details key={l.def.id} className="derive">
+                <details key={l.def.id} className="derive" open>
                   <summary>
                     {lineLabel(l.def)} · {LINE_NAMES[l.def.id]?.name} · {LINE_STATE_TEXT[l.state]}
                   </summary>
